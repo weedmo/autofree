@@ -1,0 +1,38 @@
+# Credentials & secrets
+.credentials.json
+.credentials/
+
+# Debug logs
+debug/
+
+# Cache
+cache/
+
+# Session data
+projects/
+tasks/
+teams/
+
+# MCP config (may contain tokens)
+agents/.mcp.json
+
+# Misc
+statsig/
+*.lock
+
+# History & logs
+history.jsonl
+file-history/
+transcripts/
+shell-snapshots/
+
+# Local settings & state
+settings.json
+settings.local.json
+stats-cache.json
+paste-cache/
+telemetry/
+todos/
+plans/
+plugins/
+scripts/
