@@ -41,7 +41,8 @@
     "./skills/agent-development",
     "./skills/file-organizer",
     "./skills/scout",
-    "./skills/karpathy-guidelines"
+    "./skills/karpathy-guidelines",
+    "./skills/release"
   ],
   "commands": "./commands/"
 }
