@@ -33,8 +33,8 @@
     {
       "name": "andrej-karpathy-skills",
       "source": {
-        "source": "github",
-        "repo": "forrestchang/andrej-karpathy-skills"
+        "source": "url",
+        "url": "https://github.com/forrestchang/andrej-karpathy-skills.git"
       },
       "description": "Behavioral guidelines to reduce common LLM coding mistakes",
       "category": "workflow",
@@ -43,8 +43,8 @@
     {
       "name": "document-skills",
       "source": {
-        "source": "github",
-        "repo": "anthropics/skills"
+        "source": "url",
+        "url": "https://github.com/anthropics/skills.git"
       },
       "description": "Anthropic document processing suite - Excel, Word, PowerPoint, PDF, and more",
       "category": "productivity",
