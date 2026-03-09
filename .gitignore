@@ -36,3 +36,16 @@ todos/
 plans/
 plugins/
 scripts/
+
+# Runtime & OMC state
+.omc/
+.omc-config.json
+.session-stats.json
+mcp-needs-auth-cache.json
+hud/
+ide/
+remote/
+backups/
+downloads/
+session-env/
+.claude/

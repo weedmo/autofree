@@ -1,0 +1,15 @@
+{
+  "name": "weed-harness",
+  "version": "1.0.0",
+  "description": "Custom agents, skills, and commands for Claude Code - 27 specialized agents, SuperClaude commands, and productivity workflows",
+  "author": {
+    "name": "weedmo"
+  },
+  "repository": "https://github.com/weedmo/my_harness",
+  "homepage": "https://github.com/weedmo/my_harness",
+  "license": "MIT",
+  "keywords": ["agents", "skills", "commands", "productivity", "harness"],
+  "agents": "./agents/",
+  "skills": "./skills/",
+  "commands": "./commands/"
+}
