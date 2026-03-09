@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Weed's Claude Code harness - 27 specialized agents, SuperClaude commands, and curated plugin bundle",
-    "version": "1.0.0"
+    "version": "0.0.0"
   },
   "plugins": [
     {
       "name": "weed-harness",
       "source": "./",
       "description": "Custom agents, skills, and commands for Claude Code - 27 specialized agents, SuperClaude commands, and productivity workflows",
-      "version": "1.0.0",
+      "version": "0.0.0",
       "author": {
         "name": "weedmo"
       },

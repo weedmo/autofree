@@ -1,6 +1,6 @@
 {
   "name": "weed-harness",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "Custom agents, skills, and commands for Claude Code - 27 specialized agents, SuperClaude commands, and productivity workflows",
   "author": {
     "name": "weedmo"
