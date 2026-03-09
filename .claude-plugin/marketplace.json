@@ -31,16 +31,6 @@
       "tags": ["multi-agent", "orchestration"]
     },
     {
-      "name": "andrej-karpathy-skills",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/forrestchang/andrej-karpathy-skills.git"
-      },
-      "description": "Behavioral guidelines to reduce common LLM coding mistakes",
-      "category": "workflow",
-      "tags": ["guidelines", "best-practices", "karpathy"]
-    },
-    {
       "name": "document-skills",
       "source": {
         "source": "url",
