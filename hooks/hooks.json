@@ -1,0 +1,29 @@
+{
+  "description": "Karpathy coding guidelines enforcement hooks",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$PROMPT\" | grep -qiE '(write|code|implement|build|create|refactor|review|fix|bug|improve|clean|optimize|rewrite|plan|design|architect|strategy|spec|blueprint|approach|structure|scaffold|skeleton|prototype|draft)' && echo '[Karpathy Guidelines Active] (1) Think Before Coding - state assumptions, surface tradeoffs, ask if unclear (2) Simplicity First - no unnecessary abstractions or speculative features (3) Surgical Changes - only modify what is requested (4) Goal-Driven - define success criteria before implementation' || true",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[Karpathy Guidelines] Before editing: (1) Simplicity First - minimum code, no speculative features (2) Surgical Changes - touch only what you must, match existing style (3) Goal-Driven - every changed line must trace to the request'",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}

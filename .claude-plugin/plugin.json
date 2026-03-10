@@ -44,5 +44,6 @@
     "./skills/karpathy-guidelines",
     "./skills/release"
   ],
-  "commands": "./commands/"
+  "commands": "./commands/",
+  "hooks": "./hooks/hooks.json"
 }
