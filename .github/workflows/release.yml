@@ -1,0 +1,27 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  validate-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate versions match tag
+        run: |
+          TAG_VER="${GITHUB_REF_NAME#v}"
+          PLUGIN_VER=$(python3 -c "import json; print(json.load(open('.claude-plugin/plugin.json'))['version'])")
+          MKT_VER=$(python3 -c "import json; d=json.load(open('.claude-plugin/marketplace.json')); print(d['metadata']['version'])")
+          MKT_P0=$(python3 -c "import json; d=json.load(open('.claude-plugin/marketplace.json')); print(d['plugins'][0]['version'])")
+          for v in "$PLUGIN_VER" "$MKT_VER" "$MKT_P0"; do
+            [ "$v" = "$TAG_VER" ] || { echo "::error::Version mismatch: tag=$TAG_VER got=$v"; exit 1; }
+          done
+          echo "All versions match: $TAG_VER"
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          make_latest: true
