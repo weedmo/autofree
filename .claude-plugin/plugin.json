@@ -1,6 +1,6 @@
 {
   "name": "weed-harness",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Custom agents and skills for Claude Code - 26 specialized agents and productivity workflows",
   "author": {
     "name": "weedmo"
@@ -44,7 +44,8 @@
     "./skills/commit",
     "./skills/karpathy-guidelines",
     "./skills/release",
-    "./skills/tsg"
+    "./skills/tsg",
+    "./skills/issue-report"
   ],
   "hooks": "./hooks/hooks.json"
 }
