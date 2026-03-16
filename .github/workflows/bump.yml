@@ -20,7 +20,7 @@ jobs:
           v = sys.argv[1]
           for path, keys in [
             ('.claude-plugin/plugin.json', [['version']]),
-            ('.claude-plugin/marketplace.json', [['metadata','version'], ['plugins',0,'version']])
+            ('.claude-plugin/marketplace.json', [['version'], ['plugins',0,'version']])
           ]:
             with open(path) as f: d = json.load(f)
             for k in keys:

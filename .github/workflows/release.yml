@@ -15,7 +15,7 @@ jobs:
         run: |
           TAG_VER="${GITHUB_REF_NAME#v}"
           PLUGIN_VER=$(python3 -c "import json; print(json.load(open('.claude-plugin/plugin.json'))['version'])")
-          MKT_VER=$(python3 -c "import json; d=json.load(open('.claude-plugin/marketplace.json')); print(d['metadata']['version'])")
+          MKT_VER=$(python3 -c "import json; d=json.load(open('.claude-plugin/marketplace.json')); print(d['version'])")
           MKT_P0=$(python3 -c "import json; d=json.load(open('.claude-plugin/marketplace.json')); print(d['plugins'][0]['version'])")
           for v in "$PLUGIN_VER" "$MKT_VER" "$MKT_P0"; do
             [ "$v" = "$TAG_VER" ] || { echo "::error::Version mismatch: tag=$TAG_VER got=$v"; exit 1; }

@@ -1,12 +1,10 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "weed-plugins",
+  "description": "Weed's Claude Code harness - 27 specialized agents, SuperClaude commands, and curated plugin bundle",
+  "version": "0.0.1",
   "owner": {
     "name": "weedmo"
-  },
-  "metadata": {
-    "description": "Weed's Claude Code harness - 27 specialized agents, SuperClaude commands, and curated plugin bundle",
-    "version": "0.0.1"
   },
   "plugins": [
     {
