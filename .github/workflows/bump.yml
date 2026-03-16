@@ -1,0 +1,40 @@
+name: Bump Version
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'New version (e.g. 0.0.2)'
+        required: true
+permissions:
+  contents: write
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update versions
+        run: |
+          VER="${{ github.event.inputs.version }}"
+          python3 -c "
+          import json, sys
+          v = sys.argv[1]
+          for path, keys in [
+            ('.claude-plugin/plugin.json', [['version']]),
+            ('.claude-plugin/marketplace.json', [['metadata','version'], ['plugins',0,'version']])
+          ]:
+            with open(path) as f: d = json.load(f)
+            for k in keys:
+              obj = d
+              for p in k[:-1]: obj = obj[p]
+              obj[k[-1]] = v
+            with open(path, 'w') as f: json.dump(d, f, indent=2, ensure_ascii=False); f.write('\n')
+          " "$VER"
+      - name: Commit, tag, and push
+        run: |
+          VER="${{ github.event.inputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .claude-plugin/plugin.json .claude-plugin/marketplace.json
+          git commit -m "chore: bump version to ${VER}"
+          git tag "v${VER}"
+          git push origin main --tags
