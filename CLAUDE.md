@@ -10,6 +10,10 @@ Always run **independent tasks in parallel**. Never serialize work that has no d
 | Code analysis + doc analysis | Analysis → implementation plan |
 | Independent module refactors | DB schema change → ORM update |
 
+## Git Commits
+
+Do NOT include `Co-Authored-By` lines in commit messages.
+
 ## Scout Before Complex Tasks
 
 For non-trivial tasks, use `/scout` to gather context before planning or implementation.
