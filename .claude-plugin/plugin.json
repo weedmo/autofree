@@ -49,8 +49,7 @@
     "./skills/commit",
     "./skills/karpathy-guidelines",
     "./skills/release",
-    "./skills/tsg",
-    "./skills/issue-report"
+    "./skills/tsg"
   ],
   "hooks": "./hooks/hooks.json"
 }
