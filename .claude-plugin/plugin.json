@@ -1,6 +1,6 @@
 {
   "name": "weed-harness",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Custom agents and skills for Claude Code - 26 specialized agents and productivity workflows",
   "author": {
     "name": "weedmo"
@@ -8,7 +8,12 @@
   "repository": "https://github.com/weedmo/my_harness",
   "homepage": "https://github.com/weedmo/my_harness",
   "license": "MIT",
-  "keywords": ["agents", "skills", "productivity", "harness"],
+  "keywords": [
+    "agents",
+    "skills",
+    "productivity",
+    "harness"
+  ],
   "agents": [
     "./agents/code-reviewer.md",
     "./agents/cpp-pro.md",
