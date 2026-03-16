@@ -23,7 +23,7 @@ jobs:
           echo "All versions match: $TAG_VER"
       - name: Package plugin
         run: |
-          tar -czf weed-harness-${GITHUB_REF_NAME#v}.tar.gz \
+          tar -czf /tmp/weed-harness-${GITHUB_REF_NAME#v}.tar.gz \
             --exclude='.git' \
             --exclude='.github' \
             .
@@ -31,4 +31,4 @@ jobs:
         with:
           generate_release_notes: true
           make_latest: true
-          files: weed-harness-*.tar.gz
+          files: /tmp/weed-harness-*.tar.gz
