@@ -52,6 +52,23 @@
         "pptx",
         "docx"
       ]
+    },
+    {
+      "name": "weed-cowork",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/weedmo/my_cowork.git"
+      },
+      "description": "Document collaboration tools - Notion-based issue reporting and paper review for manufacturing",
+      "version": "0.1.2",
+      "category": "productivity",
+      "tags": [
+        "documents",
+        "notion",
+        "issue-report",
+        "paper-review",
+        "manufacturing"
+      ]
     }
   ]
 }
