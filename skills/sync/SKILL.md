@@ -18,7 +18,7 @@ You are syncing plugin repos. The target argument is: `$ARGUMENTS`
 | Alias | GitHub Repo | Local Path | Cache Key |
 |-------|------------|------------|-----------|
 | `weed-harness` | `weedmo/my_harness` | `~/.claude/` | `weed-harness@weed-plugins` |
-| `weed-cowork` | `weedmo/my_cowork` | `~/repos/my_cowork/` | `weed-cowork@weed-plugins` |
+| `weed-cowork` | `weedmo/my_cowork` | `~/repos/my_cowork/` | `weed-cowork@weed-cowork` |
 
 ### External repos (pull direction)
 
@@ -76,32 +76,32 @@ LATEST_VER=${LATEST_TAG#v}
 
 Update these locations with NEW_VERSION using the Edit tool:
 
-1. **`LOCAL_PATH/.claude-plugin/plugin.json`** → `"version": "NEW_VERSION"`
-2. **`LOCAL_PATH/.claude-plugin/marketplace.json`** → `metadata.version` field
-3. **`LOCAL_PATH/.claude-plugin/marketplace.json`** → `plugins[N].version` field (match by plugin name)
+**For weed-harness:**
+1. `~/.claude/.claude-plugin/plugin.json` → `"version": "NEW_VERSION"`
+2. `~/.claude/.claude-plugin/marketplace.json` → root `"version"` field
+3. `~/.claude/.claude-plugin/marketplace.json` → `plugins[name="weed-harness"].version`
 
-**Note:** For weed-cowork, the marketplace.json is at `~/.claude/.claude-plugin/marketplace.json` (the weed-harness marketplace), and only step 1 applies to the local plugin.json. If weed-cowork has its own marketplace.json, update that too.
+**For weed-cowork:**
+1. `~/repos/my_cowork/.claude-plugin/plugin.json` → `"version": "NEW_VERSION"`
+2. `~/repos/my_cowork/.claude-plugin/marketplace.json` → `metadata.version` field
+3. `~/repos/my_cowork/.claude-plugin/marketplace.json` → `plugins[name="weed-cowork"].version`
+
+weed-cowork is an independent marketplace — no cross-repo update needed.
 
 Verify all updated values match after editing.
 
-### A5. Commit
+### A5. Commit & Push Target Repo
 
 ```bash
 cd LOCAL_PATH
 git add .claude-plugin/plugin.json .claude-plugin/marketplace.json
 git commit -m "chore: bump version to NEW_VERSION"
-```
-
-Do NOT include Co-Authored-By lines.
-
-### A6. Tag & Push
-
-```bash
-cd LOCAL_PATH
 git tag vNEW_VERSION
 git push origin main
 git push origin vNEW_VERSION
 ```
+
+Do NOT include Co-Authored-By lines.
 
 ### A7. GitHub Release
 
@@ -110,16 +110,24 @@ cd LOCAL_PATH
 gh release create vNEW_VERSION --generate-notes
 ```
 
-### A8. Marketplace Sync
+### A6. Marketplace Sync (MANDATORY)
+
+This step MUST always run after any release. It syncs the local marketplace clone with the remote.
+
+Each own repo has its own marketplace clone directory:
+- `weed-harness` → `~/.claude/plugins/marketplaces/weed-plugins`
+- `weed-cowork` → `~/.claude/plugins/marketplaces/weed-cowork`
 
 ```bash
-MARKETPLACE_DIR=~/.claude/plugins/marketplaces/weed-plugins
+# Set MARKETPLACE_DIR based on alias:
+# weed-harness → ~/.claude/plugins/marketplaces/weed-plugins
+# weed-cowork → ~/.claude/plugins/marketplaces/weed-cowork
 if [ -d "$MARKETPLACE_DIR" ]; then
   git -C "$MARKETPLACE_DIR" fetch origin
   git -C "$MARKETPLACE_DIR" reset --hard origin/main
-  echo "Marketplace synced"
+  echo "Marketplace synced to $(git -C "$MARKETPLACE_DIR" rev-parse --short HEAD)"
 else
-  echo "WARNING: Marketplace directory not found — skipping"
+  echo "ERROR: Marketplace directory not found at $MARKETPLACE_DIR — this must be fixed"
 fi
 ```
 
