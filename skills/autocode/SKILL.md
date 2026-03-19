@@ -28,6 +28,7 @@ AUTOCODE_DIR="$PROJECT_ROOT/.autocode"
 PROGRAM_FILE="$AUTOCODE_DIR/program.md"
 RESULTS_FILE="$AUTOCODE_DIR/results.tsv"
 LOGS_DIR="$AUTOCODE_DIR/logs"
+ANALYSIS_DIR="$AUTOCODE_DIR/analysis"
 ```
 
 ### Step 1: Parse Subcommand
@@ -118,6 +119,7 @@ commit	metric	status	description	delta
 ```
 
 Create `$AUTOCODE_DIR/logs/` directory for experiment logs.
+Create `$AUTOCODE_DIR/analysis/` directory for periodic analysis reports.
 
 Add `.autocode/` to `.gitignore` if not already there (ask user first).
 
@@ -136,7 +138,19 @@ Present the generated program.md via `AskUserQuestion` with options:
 4. Verify guard command passes on current code.
 5. Create experiment branch: `git checkout -b autocode/{date}` from current branch.
 
-#### 3B: Establish baseline
+#### 3B: Execution mode selection
+
+Ask the user (via AskUserQuestion):
+
+> How should experiments run?
+>
+> 1. **Single agent** — One experiment at a time, sequential. Simple and reliable.
+> 2. **Single agent + periodic analysis** — Sequential experiments, but every 10 experiments
+>    a background analyst agent reviews trends and adjusts strategy.
+
+Store the chosen mode in `$AUTOCODE_DIR/mode.txt` (`single` or `hybrid`).
+
+#### 3C: Establish baseline
 
 1. Run the metric command on unmodified code.
 2. Validate metric output is a finite number. If parsing fails, abort with error.
@@ -146,10 +160,11 @@ Present the generated program.md via `AskUserQuestion` with options:
    Baseline established:
    - {metric_name}: {baseline_value}
    - Branch: autocode/{date}
+   - Mode: {single|hybrid}
    - Starting experiment loop...
    ```
 
-#### 3C: Experiment loop
+#### 3D: Experiment loop (Single Agent)
 
 **LOOP FOREVER** (until user interrupts):
 
@@ -213,21 +228,50 @@ Present the generated program.md via `AskUserQuestion` with options:
 
 7. **Continue**: Go to step 1. Do NOT ask the user. Do NOT stop.
 
-#### 3D: Simplicity criterion
+#### 3E: Experiment loop (Single Agent + Periodic Analysis — Hybrid Mode)
+
+Same as 3D single-agent loop, but every 10 experiments, spawn a background Analyst agent:
+
+```
+Agent(
+  description="Analyze autocode experiment results",
+  subagent_type="data-scientist",
+  prompt="Read $RESULTS_FILE and logs in $LOGS_DIR/. Analyze:
+    1. Which experiment approaches yield the most improvement
+    2. Diminishing returns in any direction
+    3. Patterns in what works vs what fails
+    4. Suggested next experiments based on trends
+    Write analysis to $ANALYSIS_DIR/analysis_{N}.md",
+  run_in_background=true
+)
+```
+
+**Non-blocking**: The experiment loop does NOT pause while the analyst runs — it continues experimenting.
+
+**Feedback integration**: When the analyst completes (analysis file appears), the main loop reads its
+analysis before the next experiment and adjusts strategy accordingly. Specifically:
+- If the analyst identifies a promising direction → prioritize experiments in that direction
+- If the analyst flags diminishing returns → switch to a different approach
+- If the analyst spots a pattern in crashes → avoid similar changes
+
+**Analysis trigger**: The counter resets after each analysis. If the analyst is still running when
+the next 10-experiment boundary is reached, skip spawning another one — wait for the current analyst to finish.
+
+#### 3F: Simplicity criterion
 
 All else being equal, simpler is better:
 - A tiny improvement that adds ugly complexity → probably not worth it
 - An improvement from deleting code → definitely keep
 - Equal metric but simpler code → keep
 
-#### 3E: Timeout handling
+#### 3G: Timeout handling
 
 If an experiment exceeds the time budget:
 - Kill the process
 - Treat as `crash`
 - Revert and move on
 
-#### 3F: Never stop
+#### 3H: Never stop
 
 Once the loop begins, do NOT pause to ask "should I continue?". The user may be away.
 Keep experimenting until manually interrupted. If you run out of ideas:
@@ -235,6 +279,7 @@ Keep experimenting until manually interrupted. If you run out of ideas:
 - Try combining previous near-misses
 - Try more radical architectural changes
 - Try the opposite of what you've been trying
+- In hybrid mode, re-read the latest analysis for overlooked suggestions
 
 ---
 
@@ -283,16 +328,18 @@ Total improvement: -11.3% from baseline
 2. Read the last state from results.tsv.
 3. Detect the experiment branch and verify it's checked out.
 4. Find the current best metric from results.
-5. Display:
+5. Read execution mode from `$AUTOCODE_DIR/mode.txt` (default: `single` if missing).
+6. Display:
    ```
    Resuming autocode:
    - Branch: autocode/{date}
    - Experiments completed: {N}
    - Current best: {metric_name}: {value}
+   - Mode: {single|hybrid}
    - Last experiment: {description} ({status})
    - Resuming experiment loop...
    ```
-6. Continue the experiment loop from where it left off.
+7. Continue the experiment loop (3D or 3E based on mode) from where it left off.
 
 ---
 
@@ -302,11 +349,14 @@ Total improvement: -11.3% from baseline
 |-------|------|---------|
 | Init questions | `AskUserQuestion` | Gather target, metric, guard, constraints |
 | Init confirmation | `AskUserQuestion` | Approve/edit program.md |
+| Mode selection | `AskUserQuestion` | Choose single or hybrid execution mode |
 | Code analysis | `Read`, `Grep`, `Glob` | Analyze target files before proposing experiments |
 | Code modification | `Edit` | Modify target files with experimental changes |
 | Running experiments | `Bash` | Execute metric/guard commands (redirect output to logs) |
 | Metric extraction | `Bash` | Extract and validate metric from log files |
 | Results logging | `Edit` or `Bash` | Append to results.tsv |
+| Periodic analysis | `Agent(subagent_type="data-scientist", run_in_background=true)` | Hybrid mode: analyze trends every 10 experiments |
+| Analysis reading | `Read` | Read analyst output to adjust strategy |
 
 ## Key Principles
 
@@ -316,6 +366,7 @@ Total improvement: -11.3% from baseline
 - **Simplicity criterion** — complexity cost must be weighed against improvement magnitude.
 - **Never stop** — autonomous loop runs until interrupted.
 - **Adaptive strategy** — shift from systematic exploration to focused exploitation based on results.
+- **Hybrid mode** — periodic background analysis improves strategy without blocking the experiment loop.
 - **Redirect output** — never let experiment output flood the context window. Log to files, extract metrics via grep.
 - **Validate metrics** — always check that extracted metrics are finite numbers before comparing.
 - **program.md is portable** — can be used with any AI agent, not just Claude Code.
