@@ -16,6 +16,7 @@ description: "Troubleshooting Guide (TSG) — 코드 이슈 해결 과정을 체
 | Command | Action | User Confirmation |
 |---------|--------|-------------------|
 | `/tsg` (no args) | 현재 대화에서 이슈 감지, 기록 여부 질문 | Required |
+| `/tsg --auto` | Hook에 의해 자동 트리거 — 확인 없이 바로 작성 | **Skipped** |
 | `/tsg search <keyword>` | 기존 TSG 검색 (frontmatter tags + title) | Not needed |
 | `/tsg list` | 전체 TSG 목록 (상태별 그룹) | Not needed |
 | `/tsg unresolved` | 미해결 이슈 자동 기록 | Not needed (auto) |
@@ -23,10 +24,10 @@ description: "Troubleshooting Guide (TSG) — 코드 이슈 해결 과정을 체
 
 ## Directory Structure
 
-TSG files are stored per-project under `docs/troubleshooting/`:
+TSG files are stored per-project under `logs/troubleshooting/`:
 
 ```
-<project-root>/docs/troubleshooting/
+<project-root>/logs/troubleshooting/
 ├── README.md                              ← Index (auto-generated/updated)
 ├── build/
 │   └── TSG-001-webpack-memory-overflow.md
@@ -42,7 +43,7 @@ TSG files are stored per-project under `docs/troubleshooting/`:
 
 ```
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-TSG_DIR="$PROJECT_ROOT/docs/troubleshooting"
+TSG_DIR="$PROJECT_ROOT/logs/troubleshooting"
 ```
 
 If `$TSG_DIR` does not exist, create it along with `README.md` when first writing a TSG.
@@ -51,10 +52,13 @@ If `$TSG_DIR` does not exist, create it along with `README.md` when first writin
 
 Parse the user's input to determine which subcommand to execute:
 - No args → **Record workflow** (Step 2A or 2B)
+- `--auto` → **Auto-record workflow** (Step 2A, skip Step 5-6 confirmation)
 - `search <keyword>` → **Search workflow** (Step 3)
 - `list` → **List workflow** (Step 4)
 - `unresolved` → **Unresolved workflow** (Step 5)
 - `resolve <TSG-ID>` → **Resolve workflow** (Step 6)
+
+**`--auto` flag behavior:** Follow Step 2A identically, but skip Step 5 (showing draft) and Step 6 (waiting for confirmation). Write the TSG file directly. This flag is used by PostToolUse hooks when an issue-fix commit is detected.
 
 ### Step 2A: Record Resolved Issue (`/tsg`)
 
@@ -65,6 +69,11 @@ Parse the user's input to determine which subcommand to execute:
    - **핵심 개념**: Technical concepts needed to understand
    - **재발 방지**: Prevention checklist
    - **tags**: Keywords for searchability
+   - **test**: Test code tracking (if applicable):
+     - `file`: Path to the test file that validates the fix
+     - `command`: Command to run the test
+     - `validation`: Result from `/test-validation` (pending / valid / bad_test / bad_fix / regression)
+     - `fix_commit`: The commit hash that contains the fix
 
 2. Determine **category** from the issue context (e.g., `build`, `api`, `database`, `config`, `auth`, `deploy`, `test`, `performance`, etc.)
 
@@ -311,6 +320,52 @@ related: []
 ## 현재 상태
 - 현재 상황
 ```
+
+### Step 8: Update Top-Level logs/README.md
+
+After any TSG creation or modification, also update the top-level logs index:
+
+```
+LOGS_DIR="$PROJECT_ROOT/logs"
+```
+
+Scan all content under `$LOGS_DIR` and regenerate `$LOGS_DIR/README.md`:
+
+```markdown
+# Logs Index
+
+> Auto-generated. Do not edit manually.
+
+## Summary
+| Section | Count | Path |
+|---------|-------|------|
+| Troubleshooting (TSG) | {N} | [troubleshooting/](troubleshooting/) |
+| Devlog | {N} | [devlog/](devlog/) |
+| PR Verify | {N} | pr-verify-*.md |
+
+## Recent Activity
+| Date | Type | ID | Title |
+|------|------|----|-------|
+| 2026-03-24 | TSG | TSG-003 | Prisma migration drift |
+| 2026-03-23 | DEVLOG | DEVLOG-002 | Auth token refresh fix |
+
+## Troubleshooting (TSG)
+| ID | Status | Severity | Category | Title |
+|----|--------|----------|----------|-------|
+| TSG-001 | resolved | high | build | Webpack memory overflow |
+
+## Devlog
+| ID | Type | Title | Date |
+|----|------|-------|------|
+| DEVLOG-001 | feature | Video timestamp correction | 2026-03-17 |
+
+## PR Verification Guides
+| File | Branch |
+|------|--------|
+| [pr-verify-feature-auth.md](pr-verify-feature-auth.md) | feature-auth |
+```
+
+**Recent Activity**: Collect all TSG and DEVLOG files, sort by `updated` or `created` date descending, show top 10.
 
 ## Key Principles
 

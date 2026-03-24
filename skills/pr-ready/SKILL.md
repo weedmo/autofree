@@ -1,6 +1,6 @@
 ---
 name: pr-ready
-description: "PR 준비 워크플로우: 테스트 전체 통과 → docs/에 검토자용 테스트 실행 가이드 작성 → 가이드대로 재실행하여 검증 → PR 생성. /pr-ready로 PR 날리기 전에 사용. gh pr create를 직접 쓰려 할 때도 이 skill을 먼저 실행할 것."
+description: "PR 준비 워크플로우: 테스트 전체 통과 → logs/에 검토자용 테스트 실행 가이드 작성 → 가이드대로 재실행하여 검증 → PR 생성. /pr-ready로 PR 날리기 전에 사용. gh pr create를 직접 쓰려 할 때도 이 skill을 먼저 실행할 것."
 ---
 
 # PR Ready Workflow
@@ -40,7 +40,7 @@ git diff --name-only main...HEAD
 
 ### Step 3: 검토자용 문서 작성
 
-`<PROJECT_DIR>/docs/pr-verify-<branch-name>.md` 파일을 생성한다.
+`<PROJECT_DIR>/logs/pr-verify-<branch-name>.md` 파일을 생성한다.
 
 브랜치 이름은 `git branch --show-current`로 가져온다. 슬래시(`/`)는 하이픈(`-`)으로 치환한다.
 
@@ -86,13 +86,18 @@ pytest -v  # 또는 npm test
 
 **2회 재시도 후에도 불일치하면 STOP** — 사용자에게 보고한다.
 
-### Step 5: PR 생성
+### Step 5: Update Top-Level logs/README.md
+
+PR verify 문서 작성 후, `$PROJECT_ROOT/logs/README.md` 상위 인덱스도 갱신한다.
+TSG 스킬의 Step 8에 정의된 포맷을 따라 전체 섹션(troubleshooting, devlog, pr-verify)을 스캔하여 재생성.
+
+### Step 6: PR 생성
 
 모든 검증이 통과하면 PR을 생성한다.
 
 ```bash
 # 문서 파일 커밋
-git add <PROJECT_DIR>/docs/pr-verify-*.md
+git add <PROJECT_DIR>/logs/pr-verify-*.md
 git commit -m "docs: add PR verification guide for <branch-name>"
 
 # PR 생성
@@ -101,7 +106,7 @@ gh pr create --title "<PR 제목>" --body "$(cat <<'EOF'
 <변경 요약>
 
 ## Verification Guide
-📄 `<PROJECT_DIR>/docs/pr-verify-<branch-name>.md`
+📄 `<PROJECT_DIR>/logs/pr-verify-<branch-name>.md`
 
 ### Quick Verify
 ```bash
