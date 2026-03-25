@@ -10,6 +10,16 @@ Always run **independent tasks in parallel**. Never serialize work that has no d
 | Code analysis + doc analysis | Analysis → implementation plan |
 | Independent module refactors | DB schema change → ORM update |
 
+## Branch Workflow (Mandatory)
+
+When starting development work in a git repo connected to GitHub:
+1. **MUST** check the current branch with `git branch` and `git remote -v`
+2. **MUST** ask the user before writing any code:
+   - Which branch to base the work on (e.g., `main`, `develop`, existing feature branch)
+   - What to name the new branch (or whether to work on the current branch)
+3. **Do NOT** proceed with any code changes until the user confirms the branch setup
+4. Create and checkout the branch only after user confirmation
+
 ## Git Commits
 
 Do NOT include `Co-Authored-By` lines in commit messages.

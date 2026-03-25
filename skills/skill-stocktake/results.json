@@ -1,0 +1,83 @@
+{
+  "evaluated_at": "2026-03-25T02:46:16Z",
+  "mode": "full",
+  "batch_progress": {
+    "total": 12,
+    "evaluated": 12,
+    "status": "completed"
+  },
+  "skills": {
+    "agent-development": {
+      "path": "~/.claude/skills/agent-development/SKILL.md",
+      "verdict": "Improve",
+      "reason": "Removed duplicate Quick Reference and Best Practices sections, removed references to non-existent scripts (validate-agent.sh, test-agent-trigger.sh). Reduced from 415 to 330 lines. Unique value for Claude Code agent authoring — no plugin covers this.",
+      "mtime": "2026-03-25T02:45:00Z"
+    },
+    "file-organizer": {
+      "path": "~/.claude/skills/file-organizer/SKILL.md",
+      "verdict": "Retire",
+      "reason": "433 lines of generic file-management advice Claude already handles natively. Context token cost (~1.5K tokens) with no behavioral change. Removed from plugin.json, directory pending user deletion.",
+      "mtime": "2026-01-08T16:00:02Z"
+    },
+    "pr-ready": {
+      "path": "~/.claude/skills/pr-ready/SKILL.md",
+      "verdict": "Keep",
+      "reason": "Unique workflow chaining test execution, reviewer-facing verification guide, self-verification, and PR creation. 121 lines, concise. Integrates with tsg. No plugin equivalent.",
+      "mtime": "2026-03-24T01:40:53Z"
+    },
+    "release": {
+      "path": "~/.claude/skills/release/SKILL.md",
+      "verdict": "Keep",
+      "reason": "Project-specific release automation for weed-harness: version bump across plugin.json + marketplace.json, tag, push, GitHub Release, marketplace sync, cache update. 157 lines, bespoke.",
+      "mtime": "2026-03-09T12:01:06Z"
+    },
+    "scout": {
+      "path": "~/.claude/skills/scout/SKILL.md",
+      "verdict": "Keep",
+      "reason": "95 lines, parallel Explore agent dispatch pattern. Referenced in MEMORY.md and CLAUDE.md. No plugin provides equivalent coordinated parallel-scout.",
+      "mtime": "2026-03-08T15:22:21Z"
+    },
+    "skill-recommend": {
+      "path": "~/.claude/skills/skill-recommend/SKILL.md",
+      "verdict": "Improve",
+      "reason": "Updated matching heuristics table to reference actually-installed skills with correct plugin prefixes. Removed references to non-existent standalone skills (debugger, deployment-patterns, etc.). 102 lines.",
+      "mtime": "2026-03-25T02:45:00Z"
+    },
+    "test-validation": {
+      "path": "~/.claude/skills/test-validation/SKILL.md",
+      "verdict": "Keep",
+      "reason": "Unique FAIL-to-PASS validation pattern with judgment matrix (4 outcomes) and automatic test repair. Clean TSG integration. 231 lines.",
+      "mtime": "2026-03-24T01:34:45Z"
+    },
+    "tsg": {
+      "path": "~/.claude/skills/tsg/SKILL.md",
+      "verdict": "Keep",
+      "reason": "Core knowledge management skill with structured issue recording, search, resolve workflow, and automatic README indexing. Cross-referenced by pr-ready and test-validation. 378 lines justified by 6 subcommands.",
+      "mtime": "2026-03-24T01:40:48Z"
+    },
+    "autocode": {
+      "path": "~/.claude/skills/autocode/SKILL.md",
+      "verdict": "Improve",
+      "reason": "Added ML-specific redirect note at top pointing to /auto_research. 376 lines. Unique autonomous experiment loop — no plugin equivalent.",
+      "mtime": "2026-03-25T02:45:00Z"
+    },
+    "auto_research": {
+      "path": "~/.claude/skills/auto_research/SKILL.md",
+      "verdict": "Improve",
+      "reason": "Replaced ~120 lines of duplicated experiment loop (copied from autocode) with reference to autocode Steps 3D-3H plus ML-specific additions. Reduced from 578 to 456 lines. Unique value: deep-interview init, ML domain knowledge, experiment taxonomy, VRAM tracking.",
+      "mtime": "2026-03-25T02:45:00Z"
+    },
+    "commit": {
+      "path": "~/.claude/skills/commit/SKILL.md",
+      "verdict": "Keep",
+      "reason": "66 lines, focused commit workflow with atomic splitting, test coverage check, sensitive file check, HEREDOC format. Enforces CLAUDE.md no-Co-Authored-By rule. Meaningfully changes default behavior.",
+      "mtime": "2026-03-12T01:28:44Z"
+    },
+    "devlog": {
+      "path": "~/.claude/skills/devlog/SKILL.md",
+      "verdict": "Keep",
+      "reason": "Structured development journal with trial-and-error logging, user_validation tracking, and reject workflow. TSG integration. Autocode metric_was_improved field. 290 lines.",
+      "mtime": "2026-03-24T14:13:53Z"
+    }
+  }
+}

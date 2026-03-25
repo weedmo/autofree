@@ -263,147 +263,25 @@ git checkout -b auto_research/{date} # from current branch
    - Starting experiment loop...
    ```
 
-#### 3E: Experiment Loop (Single Agent)
+#### 3E: Experiment Loop
 
-**LOOP FOREVER** (until user interrupts):
+Follow the same experiment loop as `/autocode run` (Steps 3D-3H), with these ML-specific additions:
 
-1. **Strategize**: Select the next experiment based on ML domain knowledge.
+**Strategy differences from autocode:**
+- Use ML domain knowledge (see below) to inform experiment selection
+- Categorize each experiment by taxonomy: `hp_tune | arch | optim | reg | dynamics | data | novel`
+- Commit format: `git commit -m "experiment: [{category}] {short description}"`
+- Track VRAM usage alongside primary metric in results.tsv
+- Apply VRAM policy from research_program.md (strict/soft/no limit)
+- When stuck, consult ML domain knowledge for less obvious approaches
+- Search for relevant papers/techniques via web if available
 
-   Strategy selection follows an adaptive approach:
+**Execution modes** (same core loop, different orchestration):
+- **Single agent**: Sequential, one experiment at a time
+- **Hybrid (periodic analysis)**: Same as autocode hybrid mode, analyst also reviews by experiment category
+- **Multi-agent research org**: Strategist (proposes every 5 experiments) + Experimenter (executes) + Analyst (reviews every 10 experiments). Use `TeamCreate` if available, otherwise sequential Agent spawns with `run_in_background=true`
 
-   **Early experiments (1-10)**: Systematic exploration
-   - Start with the highest-priority area from the research program
-   - Cover each experiment taxonomy category at least once
-   - Establish which directions are promising
-
-   **Mid experiments (11-30)**: Focused exploitation
-   - Double down on categories that showed improvement
-   - Try combinations of successful changes
-   - Refer to known ML best practices for the detected framework
-
-   **Late experiments (30+)**: Creative exploration
-   - Try more radical changes — different architectures, novel techniques
-   - Search for relevant papers/techniques via web if available
-   - Revisit discarded ideas with modifications
-   - Try the opposite of what's been working
-
-   **When stuck** (3+ consecutive discards in same category):
-   - Switch to a different category
-   - Re-read target code with fresh eyes
-   - Try combining previous near-misses
-   - Consult ML domain knowledge for less obvious approaches
-
-2. **Modify**: Edit the target file(s) with the experimental change.
-   - One idea per experiment — keep changes focused.
-   - Follow existing code style.
-
-3. **Commit**: `git add {target_files} && git commit -m "experiment: [{category}] {short description}"`
-
-4. **Guard**: Run the guard command.
-   - Fails → attempt quick fix (max 2 tries)
-   - Still failing → log as `crash`, revert, move on
-
-5. **Run**: Execute the training/evaluation.
-   - Redirect output: `{run_command} > $LOGS_DIR/exp_{N}.log 2>&1`
-   - Do NOT let output flood context — read only the metrics via grep
-
-6. **Measure**: Extract metrics from the log.
-   - If command fails or times out → log as `crash`, revert, move on
-   - Extract both primary metric and resource usage
-
-7. **Decide**:
-   - **Improved** (primary metric better than current best):
-     - Log as `keep` with delta percentage
-     - Print: `KEEP [{category}]: {description} — {metric}: {old} → {new} ({delta}%)`
-     - Update current best
-   - **Equal or worse**:
-     - Log as `discard` with delta
-     - Print: `DISCARD [{category}]: {description} — {metric}: {value} (best: {best})`
-     - `git reset --hard HEAD~1`
-   - **Crash**:
-     - Log as `crash`
-     - Print: `CRASH [{category}]: {description} — {error_summary}`
-     - `git reset --hard HEAD~1`
-
-   **Simplicity criterion** (inherited from autoresearch):
-   - Tiny improvement + ugly complexity → probably not worth it
-   - Improvement from deleting code → definitely keep
-   - Equal metric but simpler code → keep
-
-   **VRAM policy**: Apply the policy from research_program.md.
-   - Strict: reject if VRAM exceeds limit even if metric improved
-   - Soft: accept with warning, flag in results
-   - No limit: ignore VRAM changes
-
-8. **Continue**: Go to step 1. Do NOT ask the user. Do NOT stop.
-
-#### 3F: Experiment Loop (Single Agent + Periodic Analysis — Hybrid Mode)
-
-Same as 3E single-agent loop, but every 10 experiments, spawn an Analyst agent:
-
-```
-Agent(
-  description="Analyze ML experiment results",
-  subagent_type="data-scientist",
-  prompt="Read $RESEARCH_DIR/results.tsv and logs in $LOGS_DIR/. Analyze:
-    1. Which experiment categories yield the most improvement
-    2. Diminishing returns in any category
-    3. Suggested next experiments based on trends
-    Write analysis to $RESEARCH_DIR/analysis/analysis_{N}.md",
-  run_in_background=true
-)
-```
-
-When the analyst completes, read its analysis and adjust strategy for the next batch of experiments.
-The experiment loop does NOT pause while the analyst runs — it continues experimenting.
-
-#### 3G: Experiment Loop (Multi-Agent Research Org)
-
-Spawn a coordinated team of agents using `TeamCreate`:
-
-```
-TeamCreate(
-  name="auto_research_team",
-  tasks=[
-    {
-      "role": "Strategist",
-      "prompt": "Review $RESULTS_FILE every 5 experiments. Propose next 5 experiments
-        with rationale based on trends. Write proposals to $RESEARCH_DIR/proposals/.",
-      "run_every": "5 experiments"
-    },
-    {
-      "role": "Experimenter",
-      "prompt": "Read experiment proposals from $RESEARCH_DIR/proposals/. Execute the
-        modify → commit → guard → run → measure → decide loop for each. Log results
-        to $RESULTS_FILE. Follow the strategy and constraints in $PROGRAM_FILE.",
-      "continuous": true
-    },
-    {
-      "role": "Analyst",
-      "prompt": "Every 10 experiments, analyze all results. Search for relevant papers
-        if web access available. Write insights to $RESEARCH_DIR/analysis/analysis_{N}.md.
-        Recommend strategy adjustments to Strategist.",
-      "run_every": "10 experiments"
-    }
-  ]
-)
-```
-
-If `TeamCreate` is not available, fall back to sequential Agent spawns:
-- Run the single-agent loop (3E) as the Experimenter
-- Every 5 experiments, spawn a background Strategist agent to review and propose
-- Every 10 experiments, spawn a background Analyst agent to analyze trends
-
-#### 3H: Never Stop
-
-Once the loop begins, do NOT pause to ask "should I continue?". The user may be away.
-Keep experimenting until manually interrupted. If you run out of ideas:
-- Re-read the target code for new angles
-- Try combining previous near-misses
-- Try more radical architectural changes
-- Try the opposite of what you've been trying
-- Search for relevant techniques in papers or documentation
-- Revisit the experiment taxonomy for unexplored categories
+**Never stop rule**: Same as autocode — autonomous loop until interrupted. Additionally, revisit the experiment taxonomy for unexplored categories.
 
 ---
 

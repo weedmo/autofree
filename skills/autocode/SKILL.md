@@ -9,6 +9,8 @@ Autonomous experiment loop for code improvement. Modify target code, measure met
 
 Inspired by [autoresearch](https://github.com/karpathy/autoresearch) — same pattern, generalized beyond ML training.
 
+> **For ML-specific research** (model training, hyperparameter tuning, architecture experiments), use `/auto_research` instead. It includes deep-interview initialization, ML domain knowledge, and experiment categorization.
+
 ## Subcommands
 
 | Command | Action | User Confirmation |

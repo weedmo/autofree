@@ -74,23 +74,22 @@ These patterns help identify which skills to recommend:
 
 | User Signal | Likely Skills |
 |------------|---------------|
-| "만들어줘", "구현", "개발" (implementation) | `tdd`, `plan`, `autocode` |
-| "리뷰", "검토" (review) | `code-reviewer`, `security-review` |
-| ".pdf", ".xlsx", ".docx", ".pptx" (file types) | `pdf`, `xlsx`, `docx`, `pptx` |
+| "만들어줘", "구현", "개발" (implementation) | `everything-claude-code:tdd`, `everything-claude-code:plan`, `autocode` |
+| "리뷰", "검토" (review) | `everything-claude-code:code-reviewer`, `everything-claude-code:security-review` |
+| ".pdf", ".xlsx", ".docx", ".pptx" (file types) | `document-skills:pdf`, `document-skills:xlsx`, `document-skills:docx`, `document-skills:pptx` |
 | "커밋", "PR" (git workflow) | `commit`, `pr-ready` |
-| "에러", "버그", "안돼" (debugging) | `tsg`, `debugger` |
-| "테스트" (testing) | `tdd`, `test-validation` |
-| "배포", "Docker", "CI/CD" (deployment) | `deployment-patterns` |
-| "문서", "README" (documentation) | `doc-coauthoring` |
-| "연구", "논문" (research) | `paper-review`, `deep-research` |
+| "에러", "버그", "안돼" (debugging) | `tsg` |
+| "테스트" (testing) | `everything-claude-code:tdd`, `test-validation` |
+| "문서", "README" (documentation) | `document-skills:doc-coauthoring` |
+| "연구", "논문" (research) | `weed-cowork:paper-review`, `everything-claude-code:deep-research` |
 | "최적화", "성능" (optimization) | `autocode` |
-| "슬라이드", "발표" (presentation) | `pptx`, `frontend-slides` |
-| "이슈", "현장" (issue report) | `issue-report` |
-| "API", "Claude API" | `claude-api` |
+| "슬라이드", "발표" (presentation) | `document-skills:pptx`, `everything-claude-code:frontend-slides` |
+| "이슈", "현장" (issue report) | `weed-cowork:issue-report` |
+| "API", "Claude API" | `document-skills:claude-api` |
 | "에이전트", "agent" | `agent-development` |
 | ML, training, model | `auto_research` |
-| "계획", "설계" (planning) | `plan`, `blueprint` |
-| "스캔", "보안" (security) | `security-scan`, `security-review` |
+| "계획", "설계" (planning) | `everything-claude-code:plan`, `everything-claude-code:blueprint` |
+| "보안" (security) | `everything-claude-code:security-review`, `everything-claude-code:security-scan` |
 
 These are starting points — always read the full skill descriptions from context to find the best match for the specific task.
 
