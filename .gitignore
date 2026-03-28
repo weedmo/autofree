@@ -49,3 +49,14 @@ backups/
 downloads/
 session-env/
 .claude/
+
+# gstack (installed via setup, not tracked)
+skills/gstack
+skills/gstack-*
+
+# Local state
+.backups/
+homunculus/
+mcp-health-cache.json
+metrics/
+sessions/
