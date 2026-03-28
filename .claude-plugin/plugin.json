@@ -1,7 +1,7 @@
 {
   "name": "weed-harness",
-  "version": "0.2.0",
-  "description": "Custom agents and skills for Claude Code - 23 specialized agents and productivity workflows",
+  "version": "2.0.0",
+  "description": "Custom skills for Claude Code - productivity workflows",
   "author": {
     "name": "weedmo"
   },
@@ -9,48 +9,24 @@
   "homepage": "https://github.com/weedmo/my_harness",
   "license": "MIT",
   "keywords": [
-    "agents",
     "skills",
     "productivity",
     "harness"
   ],
-  "agents": [
-    "./agents/cpp-pro.md",
-    "./agents/c-pro.md",
-    "./agents/database-admin.md",
-    "./agents/database-architect.md",
-    "./agents/database-optimizer.md",
-    "./agents/data-engineer.md",
-    "./agents/data-scientist.md",
-    "./agents/deployment-engineer.md",
-    "./agents/devops-troubleshooter.md",
-    "./agents/document-structure-analyzer.md",
-    "./agents/error-detective.md",
-    "./agents/mcp-expert.md",
-    "./agents/ml-engineer.md",
-    "./agents/mlops-engineer.md",
-    "./agents/network-engineer.md",
-    "./agents/nosql-specialist.md",
-    "./agents/prompt-engineer.md",
-    "./agents/python-pro.md",
-    "./agents/rust-pro.md",
-    "./agents/shell-scripting-pro.md",
-    "./agents/sql-pro.md",
-    "./agents/supabase-schema-architect.md",
-    "./agents/unused-code-cleaner.md"
-  ],
+  "agents": [],
   "skills": [
+    "./skills/a5c-ai-babysitter-isaac-sim",
     "./skills/agent-development",
-    "./skills/scout",
-    "./skills/commit",
-    "./skills/release",
-    "./skills/tsg",
-    "./skills/devlog",
     "./skills/autocode",
     "./skills/auto_research",
+    "./skills/commit",
+    "./skills/devlog",
+    "./skills/ecc-tools",
     "./skills/pr-ready",
+    "./skills/release",
+    "./skills/scout",
     "./skills/test-validation",
-    "./skills/skill-recommend"
+    "./skills/tsg"
   ],
   "hooks": "./hooks/hooks.json"
 }

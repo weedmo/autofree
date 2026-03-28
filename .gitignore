@@ -60,3 +60,9 @@ homunculus/
 mcp-health-cache.json
 metrics/
 sessions/
+
+# Backups & research (local only)
+*.backup.*
+research/
+skills/learned/
+skills/skill-stocktake/
