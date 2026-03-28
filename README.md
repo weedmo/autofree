@@ -1,17 +1,15 @@
 # weed-harness
 
-Claude Code marketplace plugin — 26 specialized agents, 4 skills, 33+ SuperClaude commands, and a curated dependency bundle.
+Claude Code plugin — productivity skills for autonomous coding, research, and development workflows.
 
 ## Quick Install
 
 ```bash
-# 1. Add marketplace
+# Add marketplace
 /plugin marketplace add weedmo/my_harness
 
-# 2. Install all plugins
+# Install
 /plugin install weed-harness@weed-plugins
-/plugin install oh-my-claudecode@weed-plugins
-/plugin install document-skills@weed-plugins
 ```
 
 Or via CLI:
@@ -19,56 +17,33 @@ Or via CLI:
 ```bash
 claude plugin marketplace add https://github.com/weedmo/my_harness.git
 claude plugin install weed-harness@weed-plugins
-claude plugin install oh-my-claudecode@weed-plugins
-claude plugin install document-skills@weed-plugins
 ```
 
-## What's Included
+## Skills
 
-### weed-harness (this plugin)
-
-**26 Agents** — specialized subagents for any domain:
-
-| Category | Agents |
-|----------|--------|
-| Languages | `python-pro`, `rust-pro`, `cpp-pro`, `c-pro`, `sql-pro`, `shell-scripting-pro` |
-| Data | `data-scientist`, `data-engineer`, `database-optimizer`, `database-admin`, `database-architect`, `nosql-specialist`, `supabase-schema-architect` |
-| DevOps | `deployment-engineer`, `devops-troubleshooter`, `network-engineer` |
-| ML/AI | `ml-engineer`, `mlops-engineer`, `prompt-engineer`, `mcp-expert` |
-| Quality | `code-reviewer`, `test-engineer`, `debugger`, `error-detective`, `unused-code-cleaner` |
-| Docs | `document-structure-analyzer` |
-
-**4 Skills:**
-- `/agent-development` — guidance for creating Claude Code agents
-- `/file-organizer` — intelligent file/folder organization
-- `/scout` — fast parallel reconnaissance before implementation
-- `/karpathy-guidelines` — behavioral guidelines to reduce common LLM coding mistakes
-
-**33+ SuperClaude Commands** (`/sc:*`):
-- `/sc:task`, `/sc:implement`, `/sc:analyze`, `/sc:test`, `/sc:build`
-- `/sc:research`, `/sc:design`, `/sc:document`, `/sc:explain`
-- `/sc:brainstorm`, `/sc:troubleshoot`, `/sc:cleanup`, `/sc:improve`
-- `/sc:git`, `/sc:estimate`, `/sc:workflow`, `/sc:spawn`
-- `/sc:index-repo`, `/sc:pm`, `/sc:recommend`, `/sc:spec-panel`, `/sc:business-panel`
-- `/commit`, `/generate-ralph`
-
-### Bundled Dependencies
-
-| Plugin | Description |
-|--------|-------------|
-| [oh-my-claudecode](https://github.com/Yeachan-Heo/oh-my-claudecode) | Multi-agent orchestration, 28 agents, 32 skills, intelligent model routing |
-| [document-skills](https://github.com/anthropics/skills) | PDF, Excel, Word, PowerPoint processing |
+| Skill | Description |
+|-------|-------------|
+| `/autocode` | Autonomous code improvement loop with optional 23-stage AutoResearchClaw pipeline |
+| `/auto_research` | Autonomous ML research loop with deep-interview initialization |
+| `/scout` | Fast parallel reconnaissance using Explore agents before implementation |
+| `/commit` | Commit message generator |
+| `/release` | Automated release workflow: version bump, tag, push, GitHub Release |
+| `/pr-ready` | PR preparation workflow with test verification |
+| `/tsg` | Troubleshooting guide — structured issue tracking and resolution |
+| `/devlog` | Development journal — record approaches, lessons learned |
+| `/test-validation` | Verify code fixes with FAIL-to-PASS pattern validation |
+| `/agent-development` | Guidance for creating Claude Code agents |
+| `/ecc-tools` | Skill combination advisor for document-skills workflows |
+| `/a5c-ai-babysitter-isaac-sim` | NVIDIA Isaac Sim simulation and synthetic data generation |
 
 ## Configuration
 
-After installing, enable all plugins in your `~/.claude/settings.json`:
+Enable the plugin in `~/.claude/settings.json`:
 
 ```json
 {
   "enabledPlugins": {
-    "weed-harness@weed-plugins": true,
-    "oh-my-claudecode@weed-plugins": true,
-    "document-skills@weed-plugins": true
+    "weed-harness@weed-plugins": true
   }
 }
 ```
