@@ -1,14 +1,18 @@
 ---
 name: auto_research
-description: "Autonomous ML research loop with deep-interview initialization. Analyzes ML repos, designs experiments, modifies training code, measures metrics, keeps improvements, discards regressions. Use /auto_research when user wants to run autonomous ML experiments, optimize model training, tune hyperparameters, improve model architecture, or do any ML research automation. Also triggers on 'research loop', 'experiment loop', 'overnight training', 'autonomous ML', or 'auto experiment'."
-argument-hint: "<subcommand: init|run|status|analyze|resume>"
+description: "Autonomous ML research loop with deep-interview initialization and optional 23-stage research pipeline (AutoResearchClaw). Subcommands: install (researchclaw), init [N] (max iterations, default 10, 0=unlimited), run (execute pipeline), status (progress), analyze (trends), resume (checkpoint). Features: PIVOT/REFINE decision logic, quality gates, self-learning, stage selection UI, literature search, multi-agent debate. Falls back to direct Claude Code execution when researchclaw is not installed."
+argument-hint: "<subcommand: install|init|run|status|analyze|resume> [iterations]"
 ---
 
 # Auto Research — Autonomous ML Research
 
-Autonomous experiment loop for ML research. Analyze an ML repository, design experiments informed by
-domain knowledge, modify training code, measure metrics, keep improvements, discard regressions. Repeat
-indefinitely.
+Autonomous experiment loop for ML research with an optional 23-stage research pipeline.
+Analyze an ML repository, design experiments informed by domain knowledge, modify training code,
+measure metrics, keep improvements, discard regressions. Supports bounded iteration counts,
+quality gates, PIVOT/REFINE decision logic, literature search, and self-learning from past failures.
+
+Built on [AutoResearchClaw](https://github.com/aiming-lab/AutoResearchClaw) when installed;
+falls back to direct Claude Code execution with ML domain knowledge otherwise.
 
 Inspired by [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) — specialized for ML
 research with deep-interview initialization and adaptive experiment strategy.
@@ -17,15 +21,16 @@ research with deep-interview initialization and adaptive experiment strategy.
 
 | Command | Action | User Confirmation |
 |---------|--------|-------------------|
-| `/auto_research init` | Deep-interview → generate `research_program.md` | Required (interview) |
-| `/auto_research run` | Execute experiment loop (single or multi-agent) | Execution mode selection |
-| `/auto_research status` | Show `results.tsv` summary and progress | Not needed |
-| `/auto_research analyze` | Deep analysis of experiment trends and insights | Not needed |
-| `/auto_research resume` | Resume interrupted experiment loop | Not needed |
+| `/auto_research install` | Clone AutoResearchClaw + pip install | Not needed |
+| `/auto_research init [N]` | Deep-interview -> generate `research_program.md`. N = max iterations (default 10, 0 = unlimited) | Required (interview) |
+| `/auto_research run` | Execute pipeline based on `research_program.md` | Execution mode selection |
+| `/auto_research status` | Show progress, stage, iteration count | Not needed |
+| `/auto_research analyze` | Deep analysis of experiment trends | Not needed |
+| `/auto_research resume` | Resume from checkpoint | Not needed |
 
 ## Procedure
 
-### Step 0: Detect Project Root
+### Step 0: Detect Project Root and Researchclaw
 
 ```
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
@@ -33,42 +38,91 @@ RESEARCH_DIR="$PROJECT_ROOT/.auto_research"
 PROGRAM_FILE="$RESEARCH_DIR/research_program.md"
 RESULTS_FILE="$RESEARCH_DIR/results.tsv"
 LOGS_DIR="$RESEARCH_DIR/logs"
+ANALYSIS_DIR="$RESEARCH_DIR/analysis"
+LESSONS_DIR="$RESEARCH_DIR/lessons"
+CHECKPOINT_FILE="$RESEARCH_DIR/checkpoint.json"
 ```
+
+Check researchclaw availability:
+```bash
+python -c "import researchclaw" 2>/dev/null && echo "available" || echo "unavailable"
+```
+
+Store result as `RESEARCHCLAW_AVAILABLE` (true/false) for all subsequent steps.
 
 ### Step 1: Parse Subcommand
 
-- No args or `init` → **Init workflow** (Step 2)
-- `run` → **Run workflow** (Step 3)
-- `status` → **Status workflow** (Step 4)
-- `analyze` → **Analyze workflow** (Step 5)
-- `resume` → **Resume workflow** (Step 6)
+- `install` -> **Install workflow** (Step 1A)
+- No args or `init` -> **Init workflow** (Step 2)
+- `run` -> **Run workflow** (Step 3)
+- `status` -> **Status workflow** (Step 4)
+- `analyze` -> **Analyze workflow** (Step 5)
+- `resume` -> **Resume workflow** (Step 6)
+
+Parse iteration count from args: `/auto_research init 10` -> `max_iterations=10`. Default: 10. If 0: unlimited (legacy infinite loop).
 
 ---
 
-### Step 2: Init — Deep Interview (`/auto_research init`)
+### Step 1A: Install (`/auto_research install`)
 
-The init phase uses a Socratic deep-interview process to thoroughly understand the ML project
-and research goals before generating a research program. This prevents wasted experiments from
-vague or misunderstood objectives.
+Install AutoResearchClaw for enhanced pipeline capabilities.
 
-#### Phase 2A: Repository Reconnaissance
+1. Check if already installed:
+   ```bash
+   python -c "import researchclaw" 2>/dev/null
+   ```
+   If import succeeds, print version and exit: `researchclaw is already installed.`
+
+2. Clone and install:
+   ```bash
+   RESEARCHCLAW_DIR="$HOME/.local/share/researchclaw"
+   if [ ! -d "$RESEARCHCLAW_DIR" ]; then
+     git clone https://github.com/aiming-lab/AutoResearchClaw.git "$RESEARCHCLAW_DIR"
+   fi
+   cd "$RESEARCHCLAW_DIR" && pip install -e .
+   ```
+
+3. Verify:
+   ```bash
+   python -c "import researchclaw; print(researchclaw.__version__)"
+   ```
+
+4. Print result: `AutoResearchClaw installed successfully. Full pipeline with literature search, experiment sandbox, and multi-agent debate now available.`
+
+---
+
+### Step 2: Init — Deep Interview (`/auto_research init [N]`)
+
+#### Phase 2A: Parse Iteration Count
+
+Extract N from arguments. Examples:
+- `/auto_research init` -> `max_iterations=10`
+- `/auto_research init 20` -> `max_iterations=20`
+- `/auto_research init 0` -> `max_iterations=0` (unlimited)
+
+#### Phase 2B: Repository Reconnaissance
 
 Before asking the user anything, scan the repo to gather facts autonomously:
 
 1. **Detect ML framework**: PyTorch, TensorFlow, JAX, HuggingFace, Lightning, etc.
 2. **Identify key files**:
-   - Training scripts (train.py, main.py, run_*.py, etc.)
+   - Training scripts (train.py, main.py, run_*.py)
    - Model definitions (model.py, architecture files)
    - Config files (config.yaml, hparams.yaml, hydra configs)
    - Data pipeline (dataset.py, dataloader, prepare.py)
    - Evaluation scripts (eval.py, test.py, benchmark scripts)
 3. **Extract current metrics**: Look for logged metrics, wandb/tensorboard configs, evaluation functions
-4. **Detect constraints**: GPU requirements, dependencies, data paths, environment setup
-5. **Read README and docs**: Understand the project's purpose and structure
+4. **Detect constraints**: GPU requirements, dependencies, data paths
+5. **Read README and docs**: Understand the project's purpose
+
+If researchclaw available:
+```bash
+python -c "from researchclaw.domains.detector import detect_domain; print(detect_domain('$PROJECT_ROOT'))"
+```
 
 Store findings as `recon_context`. This prevents asking the user questions the code already answers.
 
-#### Phase 2B: Deep Interview Loop
+#### Phase 2C: Deep Interview Loop
 
 Initialize interview state and persist to `$RESEARCH_DIR/interview_state.json`:
 
@@ -100,53 +154,55 @@ Announce:
 | Research Goal | 0.30 | What metric to optimize, what constitutes success |
 | Experiment Scope | 0.25 | Which files to modify, what's off-limits |
 | Evaluation Protocol | 0.25 | How to measure, baseline, comparison method |
-| Resource Constraints | 0.20 | GPU budget, time per experiment, VRAM limits, dependencies |
+| Resource Constraints | 0.20 | GPU budget, time per experiment, VRAM limits |
 
 **Ambiguity formula:**
-`ambiguity = 1 - (goal × 0.30 + scope × 0.25 + evaluation × 0.25 + resources × 0.20)`
-
-**Interview question strategy by dimension:**
-
-| Dimension | Question Style | Example |
-|-----------|---------------|---------|
-| Research Goal | "What specific improvement?" | "You want lower val_loss — is that on the existing eval set, or do you have a specific benchmark?" |
-| Experiment Scope | "What can change?" | "I see train.py has the model and optimizer. Should I also experiment with the data augmentation in dataset.py?" |
-| Evaluation Protocol | "How do we know it works?" | "The training script prints loss but no held-out eval. Should I add a validation step, or is training loss sufficient?" |
-| Resource Constraints | "What are the limits?" | "I detected an RTX 4090 (24GB). Should I stay within current VRAM usage, or is some increase acceptable for better metrics?" |
+`ambiguity = 1 - (goal * 0.30 + scope * 0.25 + evaluation * 0.25 + resources * 0.20)`
 
 **Rules:**
 - Ask ONE question per round via `AskUserQuestion`, targeting the weakest dimension
 - Use recon_context to ask informed questions — never ask what the code reveals
-- Score ambiguity after every answer using a structured scoring prompt (see below), display transparently
-- Proceed to spec generation when ambiguity ≤ 0.2
-- **Round 4+**: Allow early exit if user says "enough", "let's go", "start experimenting" — show current ambiguity and unclear dimensions, confirm before proceeding
-- Soft warning at round 8, hard cap at round 15
-
-**Ambiguity scoring prompt** (use after each answer):
-```
-Given this ML research interview transcript, score clarity on each dimension (0.0-1.0):
-
-Original idea: {idea}
-Repo recon: {recon_summary}
-Transcript: {all rounds Q&A}
-
-Score each:
-1. Research Goal (0.0-1.0): Is the optimization target unambiguous?
-2. Experiment Scope (0.0-1.0): Are editable vs read-only files clear?
-3. Evaluation Protocol (0.0-1.0): Could you write the metric extraction command?
-4. Resource Constraints (0.0-1.0): Are GPU/VRAM/time/dependency limits clear?
-
-For each: score, justification (one sentence), gap (what's still unclear if < 0.9).
-Respond as JSON.
-```
+- Score ambiguity after every answer, display transparently
+- Proceed to spec generation when ambiguity <= 0.2
+- Round 4+: Allow early exit. Round 8: Soft warning. Round 15: Hard cap.
 
 **Challenge modes** (used once each):
 - **Round 4+: Contrarian** — "Do you actually need to change the architecture, or could a learning rate sweep get you 80% of the way?"
 - **Round 6+: Simplifier** — "What's the minimum viable experiment that would tell you if this research direction is worth pursuing?"
 
-#### Phase 2C: Generate research_program.md
+#### Phase 2D: Stage Selection UI
 
-When ambiguity ≤ threshold, crystallize the interview into a research program:
+After interview completes, present 23-stage pipeline via `AskUserQuestion` with multiSelect.
+
+| ID | Phase | Stage | Default |
+|----|-------|-------|---------|
+| 1 | A: Scoping | Topic initialization | ON |
+| 2 | A: Scoping | Problem decomposition | ON |
+| 3 | B: Literature | Search strategy | ON |
+| 4 | B: Literature | Collect sources | ON |
+| 5 | B: Literature | Screen sources (GATE) | ON |
+| 6 | B: Literature | Extract findings | ON |
+| 7 | C: Synthesis | Cluster findings | ON |
+| 8 | C: Synthesis | Hypothesis generation | ON |
+| 9 | D: Experiment Design | Design experiments (GATE) | ON |
+| 10 | D: Experiment Design | Code generation | ON |
+| 11 | D: Experiment Design | Resource planning | ON |
+| 12 | E: Execution | Run experiments | ON |
+| 13 | E: Execution | Iterative refinement | ON |
+| 14 | F: Analysis | Result analysis | ON |
+| 15 | F: Analysis | PIVOT/REFINE/PROCEED decision | ON |
+| 16 | G: Paper Writing | Outline | ON |
+| 17 | G: Paper Writing | Draft | ON |
+| 18 | G: Paper Writing | Peer review | ON |
+| 19 | G: Paper Writing | Revision | ON |
+| 20 | H: Finalization | Quality gate (GATE) | ON |
+| 21 | H: Finalization | Archive results | ON |
+| 22 | H: Finalization | Export artifacts | ON |
+| 23 | H: Finalization | Citation verification | ON |
+
+**auto_research defaults**: ALL 23 stages ON. User can deselect unwanted stages.
+
+#### Phase 2E: Generate research_program.md
 
 ```markdown
 # Auto Research Program
@@ -173,13 +229,11 @@ When ambiguity ≤ threshold, crystallize the interview into a research program:
 - **Resource command**: `{command to extract VRAM/time/etc}`
 - **Guard command**: `{tests/checks that must pass}`
 - **Time budget**: {minutes per experiment}
-- **Baseline**: {to be established on first run}
 
 ## Resource Constraints
 - **GPU**: {detected or specified}
 - **VRAM policy**: {strict limit | soft limit with threshold | no limit}
 - **Dependency policy**: {no new deps | allow with user approval}
-- **Max concurrent experiments**: {1 for single-agent, N for multi-agent}
 
 ## Strategy
 - **Priority areas**: {what to try first, from interview}
@@ -187,38 +241,35 @@ When ambiguity ≤ threshold, crystallize the interview into a research program:
 - **Avoid**: {explicitly excluded approaches}
 
 ## Experiment Taxonomy
-Categorize experiments for systematic exploration:
-1. **Hyperparameter tuning** — LR, batch size, weight decay, scheduler
-2. **Architecture changes** — layers, width, attention, normalization
-3. **Optimizer experiments** — optimizer type, momentum, adaptive methods
-4. **Regularization** — dropout, augmentation, label smoothing
-5. **Training dynamics** — warmup, cooldown, gradient clipping, accumulation
-6. **Data pipeline** — preprocessing, tokenization, batching strategy
-7. **Novel techniques** — ideas from papers, combinations of above
+1. **hp_tune** — LR, batch size, weight decay, scheduler
+2. **arch** — layers, width, attention, normalization
+3. **optim** — optimizer type, momentum, adaptive methods
+4. **reg** — dropout, augmentation, label smoothing
+5. **dynamics** — warmup, cooldown, gradient clipping, accumulation
+6. **data** — preprocessing, tokenization, batching strategy
+7. **novel** — ideas from papers, combinations of above
+
+## Pipeline Configuration
+- **max_iterations**: {N}
+- **selected_stages**: [{list of all 23 stage IDs by default}]
+- **pivot_limit**: 2
+- **refine_limit**: 2
+- **researchclaw_available**: {true|false}
+- **quality_gate_stages**: [5, 9, 20]
+- **lessons_enabled**: true
+- **auto_approve_gates**: false
+- **experiment_mode**: sandbox
 ```
 
 Also initialize:
-
-**results.tsv** (tab-separated, extended format):
-```
-commit	metric	memory_gb	time_sec	status	category	description	delta
-```
-
-- `commit`: git short hash (7 chars)
-- `metric`: primary metric value (0.000000 for crashes)
-- `memory_gb`: peak VRAM in GB (0.0 for crashes)
-- `time_sec`: experiment wall-clock time
-- `status`: keep | discard | crash
-- `category`: from experiment taxonomy (hp_tune | arch | optim | reg | dynamics | data | novel)
-- `description`: short text of what was tried
-- `delta`: % change from current best (e.g., -2.3% or +1.1%)
+- `$RESEARCH_DIR/results.tsv` with header: `iteration\tstage\tcommit\tmetric\tmemory_gb\ttime_sec\tstatus\tcategory\tdescription\tdelta`
+- `$RESEARCH_DIR/logs/`, `$RESEARCH_DIR/analysis/`, `$RESEARCH_DIR/lessons/` directories
+- `$RESEARCH_DIR/checkpoint.json` with initial state
 
 Add `.auto_research/` to `.gitignore` if not already there.
-
-Present the generated research_program.md via `AskUserQuestion` with options:
-[Approve and save] [Edit and regenerate] [Restart interview]
-
 Delete `$RESEARCH_DIR/interview_state.json` after successful save.
+
+Present via `AskUserQuestion`: [Approve and save] [Edit and regenerate] [Restart interview]
 
 ---
 
@@ -226,9 +277,11 @@ Delete `$RESEARCH_DIR/interview_state.json` after successful save.
 
 #### 3A: Pre-flight
 
-1. Verify `$PROGRAM_FILE` exists. If not: `research_program.md가 없습니다. /auto_research init을 먼저 실행하세요.`
-2. Read `$PROGRAM_FILE` to load configuration.
+1. Verify `$PROGRAM_FILE` exists. If not: `research_program.md not found. Run /auto_research init first.`
+2. Read `$PROGRAM_FILE` to load all configuration.
 3. Verify target files and metric commands work.
+4. Load lessons from `$LESSONS_DIR/*.json` if any exist.
+5. Create experiment branch: `git checkout -b auto_research/{date}`
 
 #### 3B: Execution Mode Selection
 
@@ -236,162 +289,268 @@ Ask the user (via AskUserQuestion):
 
 > How should experiments run?
 >
-> 1. **Single agent** — One experiment at a time, sequential. Simple and reliable. (~12 experiments/hour at 5min each)
-> 2. **Multi-agent research org** — Parallel agents with role separation:
->    - **Strategist**: Reviews results, proposes next experiments based on trends
->    - **Experimenter(s)**: Execute experiments in parallel (if multiple GPUs)
->    - **Analyst**: Periodically summarizes findings and adjusts strategy
-> 3. **Single agent + periodic analysis** — Sequential experiments, but every N experiments an analyst agent reviews trends and adjusts strategy
+> 1. **Single agent** — One experiment at a time, sequential. (~12 experiments/hour at 5min each)
+> 2. **Single agent + periodic analysis** — Sequential experiments, every 10 experiments an analyst reviews trends.
+> 3. **Multi-agent research org** — Strategist + Experimenter(s) + Analyst in parallel.
 
-#### 3C: Create Experiment Branch
+Store mode in `$RESEARCH_DIR/mode.txt`.
 
-```bash
-git checkout -b auto_research/{date} # from current branch
-```
-
-#### 3D: Establish Baseline
+#### 3C: Establish Baseline
 
 1. Run the metric command on unmodified code.
 2. Record baseline in `results.tsv`.
-3. Display:
+3. Initialize counters: `pivot_count=0`, `refine_count=0`, `iteration=1`.
+4. Display:
    ```
    Baseline established:
    - {metric_name}: {baseline_value}
    - VRAM: {memory_gb} GB
    - Branch: auto_research/{date}
    - Mode: {single|multi-agent|hybrid}
-   - Starting experiment loop...
+   - Max iterations: {N} (0 = unlimited)
+   - Selected stages: {count} of 23
+   - Researchclaw: {available|unavailable}
+   - Starting pipeline...
    ```
 
-#### 3E: Experiment Loop
+#### 3D: Pipeline Execution Loop
 
-Follow the same experiment loop as `/autocode run` (Steps 3D-3H), with these ML-specific additions:
+```
+for iteration in 1..max_iterations (or forever if 0):
+    load_lessons()
 
-**Strategy differences from autocode:**
-- Use ML domain knowledge (see below) to inform experiment selection
-- Categorize each experiment by taxonomy: `hp_tune | arch | optim | reg | dynamics | data | novel`
-- Commit format: `git commit -m "experiment: [{category}] {short description}"`
-- Track VRAM usage alongside primary metric in results.tsv
-- Apply VRAM policy from research_program.md (strict/soft/no limit)
-- When stuck, consult ML domain knowledge for less obvious approaches
-- Search for relevant papers/techniques via web if available
+    for stage in selected_stages:
+        execute_stage(stage)
 
-**Execution modes** (same core loop, different orchestration):
-- **Single agent**: Sequential, one experiment at a time
-- **Hybrid (periodic analysis)**: Same as autocode hybrid mode, analyst also reviews by experiment category
-- **Multi-agent research org**: Strategist (proposes every 5 experiments) + Experimenter (executes) + Analyst (reviews every 10 experiments). Use `TeamCreate` if available, otherwise sequential Agent spawns with `run_in_background=true`
+        if stage in quality_gate_stages:
+            run_quality_gate(stage)
 
-**Never stop rule**: Same as autocode — autonomous loop until interrupted. Additionally, revisit the experiment taxonomy for unexplored categories.
+        if stage == 15:  # RESEARCH_DECISION
+            decision = analyze_results()
+            handle_decision(decision)
+
+    log_results()
+    extract_lessons()
+    save_checkpoint()
+
+    if iteration == max_iterations and max_iterations > 0:
+        generate_final_summary()
+        break
+```
+
+#### 3E: Stage Execution
+
+**If researchclaw is available**, delegate to modules:
+
+| Stages | Module |
+|--------|--------|
+| 1-2 | `researchclaw.pipeline.stage_impls._topic` |
+| 3-6 | `researchclaw.literature.search` + `researchclaw.pipeline.stage_impls._literature` |
+| 7-8 | `researchclaw.pipeline.stage_impls._synthesis` |
+| 9-11 | `researchclaw.pipeline.stage_impls._experiment_design` + `researchclaw.agents.benchmark_agent` |
+| 10 | `researchclaw.pipeline.stage_impls._code_generation` (CodeAgent multi-phase) |
+| 12-13 | `researchclaw.experiment.runner` + `researchclaw.experiment.sandbox` |
+| 14-15 | `researchclaw.pipeline.stage_impls._analysis` |
+| 16-19 | `researchclaw.pipeline.stage_impls._paper_writing` |
+| 20-23 | `researchclaw.pipeline.stage_impls._review_publish` |
+
+**If researchclaw is NOT available**, execute directly in Claude Code with ML domain knowledge:
+
+- Stages 1-2: Analyze ML repo structure, decompose research goal into sub-problems.
+- Stages 3-6: Search codebase for patterns, web search for papers (if available), collect relevant techniques.
+- Stages 7-8: Synthesize findings, generate experiment hypotheses by taxonomy category.
+- Stages 9-11: Design experiment plan, generate code change, assess GPU/VRAM requirements.
+- Stages 12-13: Apply code change, run training/eval, track VRAM. Self-heal on NaN/crash.
+- Stage 14: Multi-dimensional analysis (metric + VRAM + time).
+- Stage 15: PIVOT/REFINE/PROCEED decision.
+- Stages 16-19: Generate paper outline, draft sections, run peer review debate, revise.
+- Stage 20: Quality gate — 4-layer verification.
+- Stages 21-23: Archive to knowledge base, export LaTeX/Markdown, verify citations.
+
+**Experiment substeps** (within stages 10-13):
+
+1. **Plan**: Use ML domain knowledge + experiment taxonomy. Categorize as `hp_tune|arch|optim|reg|dynamics|data|novel`.
+2. **Modify**: Edit target files. One idea per experiment. Follow existing code style.
+3. **Commit**: `git add {files} && git commit -m "experiment: [{category}] {description}"`
+4. **Guard**: Run guard command. Quick fix (max 2 tries). If still failing: crash, revert.
+5. **Measure**: Run metric + resource commands. Track VRAM alongside primary metric.
+6. **Decide**: Improved -> keep. Equal/worse -> discard + revert. Crash -> revert.
+
+#### 3F: PIVOT/REFINE/PROCEED Decision Logic
+
+Triggered at Stage 15 or when metrics stall (3+ consecutive no-improvement).
+
+- **PROCEED**: Metrics improving. Continue.
+- **REFINE**: Plateau detected. Rollback to Stage 13. `refine_count += 1`. Max 2.
+- **PIVOT**: Stalled/degrading. Rollback to Stage 8. `pivot_count += 1`. Max 2.
+
+If researchclaw available, use `researchclaw.pipeline.stage_impls._analysis` for decision.
+
+#### 3G: Quality Gates
+
+At stages 5, 9, 20:
+
+1. **Automated assessment**: researchclaw validator (if installed) or Claude Code inline check.
+2. **User approval** via `AskUserQuestion` (unless `auto_approve_gates: true`):
+   - Show: iteration, metric, improvement %, category breakdown.
+   - Options: [Approve] [Adjust strategy] [Stop]
+
+#### 3H: Self-Learning (MetaClaw-style)
+
+After each iteration:
+
+1. **Extract lessons**:
+   ```json
+   {
+     "iteration": 5,
+     "type": "failure|success|insight",
+     "category": "hp_tune",
+     "description": "LR 0.1 caused divergence with batch size 32",
+     "action": "Keep LR below 0.05 when batch size < 64",
+     "tags": ["lr", "batch_size", "divergence"]
+   }
+   ```
+
+2. **Store** in `$LESSONS_DIR/lesson_{N}.json`.
+3. **Load** at start of each iteration to inform experiment selection.
+4. If researchclaw installed: `python -c "from researchclaw.evolution import evolve; ..."`
+
+#### 3I: Checkpoint and Resume
+
+After each stage, write `checkpoint.json`:
+```json
+{
+  "iteration": 3,
+  "stage": 14,
+  "pivot_count": 1,
+  "refine_count": 0,
+  "best_metric": 0.823,
+  "best_commit": "a1b2c3d",
+  "best_vram_gb": 18.2,
+  "timestamp": "2026-03-28T12:00:00Z"
+}
+```
+
+#### 3J: Loop Termination
+
+- **Bounded** (`max_iterations > 0`): Stop after N iterations. Generate final summary.
+- **Unlimited** (`max_iterations == 0`): Run until manually interrupted.
+
+**Final summary**:
+```
+## Auto Research Final Summary
+
+- Iterations completed: {N}
+- Total experiments: {total} ({kept} kept, {discarded} discarded, {crashed} crashed)
+- Baseline: {baseline} -> Best: {best} ({improvement}%)
+- Peak VRAM: {max_vram} GB
+- Pivots: {pivot_count}/{pivot_limit}
+- Refines: {refine_count}/{refine_limit}
+- Lessons extracted: {lesson_count}
+
+### By Category
+| Category | Tried | Kept | Success Rate | Avg Delta |
+|----------|-------|------|-------------|-----------|
+
+### Top Improvements
+1. [{category}] {description} ({delta}%)
+2. ...
+```
 
 ---
 
 ### Step 4: Status (`/auto_research status`)
 
-1. If `$RESULTS_FILE` doesn't exist: `아직 실험 결과가 없습니다. /auto_research init 후 /auto_research run을 실행하세요.`
+1. If `$RESULTS_FILE` doesn't exist: `No results yet. Run /auto_research init then /auto_research run.`
 
-2. Read and parse `results.tsv`.
+2. Read `results.tsv` and `checkpoint.json`.
 
-3. Display summary:
+3. Display:
 
 ```
 ## Auto Research Status
 
 **Branch**: auto_research/{date}
-**Experiments**: {total} total ({kept} kept, {discarded} discarded, {crashed} crashed)
+**Iteration**: {current} / {max_iterations}
+**Stage**: {current_stage_name} ({stage_id})
+**Experiments**: {total} ({kept} kept, {discarded} discarded, {crashed} crashed)
 **Best metric**: {best_value} (baseline: {baseline_value}, improvement: {pct}%)
 **Peak VRAM**: {max_vram} GB
-**Current best commit**: {commit_hash}
+**Pivots**: {pivot_count}/{pivot_limit}  |  **Refines**: {refine_count}/{refine_limit}
+**Researchclaw**: {available|unavailable}
+**Lessons**: {lesson_count}
 
 ### By Category
 | Category | Tried | Kept | Success Rate | Avg Delta |
 |----------|-------|------|-------------|-----------|
-| hp_tune | 8 | 3 | 37.5% | -1.2% |
-| arch | 5 | 2 | 40.0% | -3.1% |
-| optim | 3 | 0 | 0.0% | +0.5% |
-| ... | | | | |
 
 ### Experiment History (last 10)
-| # | Commit | Metric | VRAM | Time | Status | Category | Description | Delta |
-|---|--------|--------|------|------|--------|----------|-------------|-------|
-
-### Kept Changes (cumulative)
-1. [hp_tune] increase LR to 0.04 (-2.1%)
-2. [arch] add residual connections (-3.5%)
-...
-
-Total improvement: {pct}% from baseline
+| # | Iter | Stage | Commit | Metric | VRAM | Time | Status | Category | Description | Delta |
 ```
 
 ---
 
 ### Step 5: Analyze (`/auto_research analyze`)
 
-Deep analysis of experiment results, going beyond the status summary.
+Deep analysis of experiment results.
 
 1. Read all of `results.tsv` and available experiment logs.
 
-2. Generate analysis covering:
+2. If researchclaw available:
+   ```bash
+   python -c "from researchclaw.pipeline.stage_impls._analysis import analyze; ..."
+   ```
 
-**Trend Analysis**:
-- Which experiment categories yielded the most improvement?
-- Is there diminishing returns in any category?
-- What's the improvement trajectory over time?
+3. Generate analysis covering:
+   - **Trend Analysis**: Best categories, diminishing returns, trajectory
+   - **Failure Patterns**: Consistent failures, crash concentration, common errors
+   - **Strategy Recommendations**: Explore further vs abandon
+   - **Resource Analysis**: VRAM trend, time efficiency, cost-benefit
 
-**Failure Patterns**:
-- What types of experiments consistently fail?
-- Are crashes concentrated in a specific area?
-- Common error patterns in crash logs
-
-**Strategy Recommendations**:
-- Which directions should be explored further?
-- Which directions should be abandoned?
-- Suggested next experiments based on patterns
-
-**Resource Analysis**:
-- VRAM trend across experiments
-- Time efficiency: improvement per experiment-minute
-- Cost-benefit of VRAM increases vs metric gains
-
-3. Write analysis to `$RESEARCH_DIR/analysis/analysis_{timestamp}.md`
-4. Display key insights to the user.
+4. Write to `$ANALYSIS_DIR/analysis_{timestamp}.md`.
+5. Display key insights.
 
 ---
 
 ### Step 6: Resume (`/auto_research resume`)
 
-1. Verify `$PROGRAM_FILE` and `$RESULTS_FILE` exist.
-2. Read the last state from results.tsv.
-3. Detect the experiment branch and verify it's checked out.
-4. Find the current best metric from results.
+1. Verify `$PROGRAM_FILE`, `$RESULTS_FILE`, and `$CHECKPOINT_FILE` exist.
+2. Read checkpoint to restore state.
+3. Load lessons from `$LESSONS_DIR`.
+4. Detect experiment branch, verify checkout.
 5. Display:
    ```
    Resuming auto_research:
    - Branch: auto_research/{date}
-   - Experiments completed: {N}
+   - Iteration: {current}/{max_iterations}
+   - Stage: {stage_name} ({stage_id})
    - Current best: {metric}: {value}
-   - Last experiment: {description} ({status})
-   - Resuming experiment loop...
+   - VRAM: {vram} GB
+   - Pivots: {pivot_count}/{pivot_limit}
+   - Refines: {refine_count}/{refine_limit}
+   - Lessons loaded: {count}
+   - Mode: {single|hybrid|multi-agent}
+   - Resuming pipeline...
    ```
-6. Continue the experiment loop from where it left off.
+6. Continue pipeline loop from checkpointed state.
 
 ---
 
 ## ML Domain Knowledge
 
-The experiment strategist should draw on these ML research patterns when deciding what to try.
-This is not an exhaustive list — adapt to the specific ML domain detected in the repo.
+The experiment strategist should draw on these patterns when deciding what to try.
 
 ### General Principles
 - **Learning rate is king**: Often the single most impactful hyperparameter. Try it first.
-- **Batch size and LR co-scale**: When increasing batch size, scale LR proportionally (linear or sqrt).
-- **Regularization after optimization**: Get the optimizer working well before adding regularization.
-- **Simpler baselines first**: Before trying novel techniques, ensure basic hyperparameters are tuned.
+- **Batch size and LR co-scale**: When increasing batch size, scale LR proportionally.
+- **Regularization after optimization**: Get the optimizer working before adding regularization.
+- **Simpler baselines first**: Ensure basic hyperparameters are tuned before novel techniques.
 - **One change at a time**: Isolate variables to understand what works.
 
 ### By ML Domain
 
 **LLM / Language Models**:
-- Architecture: attention patterns, positional encoding (RoPE, ALiBi), normalization (RMSNorm, LayerNorm)
+- Architecture: attention patterns, positional encoding (RoPE, ALiBi), normalization (RMSNorm)
 - Optimization: AdamW, Muon, learning rate warmup/cooldown schedules
 - Scaling: depth vs width tradeoff, aspect ratio
 - Efficiency: Flash Attention, sliding window, GQA/MQA
@@ -405,7 +564,7 @@ This is not an exhaustive list — adapt to the specific ML domain detected in t
 **Reinforcement Learning**:
 - Hyperparameters: discount factor, GAE lambda, clip ratio, entropy coefficient
 - Architecture: shared vs separate actor-critic, network width/depth
-- Training: batch size, number of epochs per update, normalization
+- Training: batch size, epochs per update, normalization
 - Exploration: epsilon schedule, intrinsic motivation
 
 **Robotics / Control**:
@@ -428,18 +587,23 @@ When web search is available and the agent is stuck or in late-stage exploration
 
 | Phase | Tool | Purpose |
 |-------|------|---------|
-| Init recon | `Agent(subagent_type="Explore")` | Scan repo for ML framework, key files, metrics |
-| Interview questions | `AskUserQuestion` | Ask one question per round with clickable options |
-| Ambiguity scoring | Inline JSON scoring prompt | Score clarity dimensions after each answer |
-| Interview persistence | `Write` to `$RESEARCH_DIR/interview_state.json` | Save state after each round for resume |
-| Execution mode selection | `AskUserQuestion` | Let user choose single/hybrid/multi-agent |
-| Code analysis | `Read`, `Grep`, `Glob` | Analyze target files before proposing experiments |
-| Code modification | `Edit` | Modify target files with experimental changes |
-| Running experiments | `Bash` | Execute training/evaluation commands (redirect output) |
-| Metric extraction | `Bash` + `grep` | Extract metrics from log files |
+| Install | `Bash` | Clone repo, pip install, verify import |
+| Init recon | `Agent(subagent_type="Explore")` | Scan repo for ML framework, key files |
+| Interview | `AskUserQuestion` | One question per round with clickable options |
+| Stage selection | `AskUserQuestion` (multiSelect) | Choose pipeline stages |
+| Init confirmation | `AskUserQuestion` | Approve/edit research_program.md |
+| Mode selection | `AskUserQuestion` | Choose single/hybrid/multi-agent |
+| Quality gates | `AskUserQuestion` | User approval at gate stages |
+| Code analysis | `Read`, `Grep`, `Glob` | Analyze target files |
+| Code modification | `Edit` | Modify target files |
+| Researchclaw calls | `Bash` | Delegate to researchclaw modules |
+| Running experiments | `Bash` | Execute training/eval commands |
+| Metric extraction | `Bash` | Extract metrics from logs |
 | Results logging | `Edit` or `Bash` | Append to results.tsv |
-| Multi-agent spawning | `Agent(run_in_background=true)` | Spawn Analyst/Strategist agents |
-| Analysis writing | `Write` | Save analysis reports to `$RESEARCH_DIR/analysis/` |
+| Checkpoint | `Write` | Save checkpoint.json after each stage |
+| Lessons | `Write` | Save lesson JSON files |
+| Analysis | `Agent(subagent_type="data-scientist", run_in_background=true)` | Periodic trend analysis |
+| Literature | `Bash` (researchclaw) or `WebSearch` | Search for relevant papers |
 
 ## Key Principles
 
@@ -447,10 +611,17 @@ When web search is available and the agent is stuck or in late-stage exploration
 - **Single measurable metric** — The core requirement. No metric = no auto_research.
 - **ML domain knowledge matters** — Not just random changes, but informed experiments.
 - **Guard before accept** — Tests must pass. Never keep broken code.
-- **Git as checkpoint** — Every experiment is a commit. Easy to review, revert, cherry-pick.
-- **Simplicity criterion** — Complexity cost weighed against improvement magnitude.
-- **Never stop** — Autonomous loop runs until interrupted.
+- **Git as checkpoint** — Every experiment is a commit.
+- **Bounded by default** — 10 iterations unless overridden. Prevents runaway loops.
+- **PIVOT/REFINE/PROCEED** — Structured decision logic. Max 2 pivots, 2 refines.
+- **Quality gates** — Automated + human checkpoints at configurable stages.
+- **Self-learning** — Extract lessons from failures, load in future iterations.
+- **Graceful degradation** — Full pipeline with researchclaw, ML-aware loop without it.
+- **Checkpoint and resume** — Never lose progress.
+- **Stage selection** — User controls which stages run. All 23 ON by default.
 - **Categorize experiments** — Track what types of changes work for this project.
 - **Adaptive strategy** — Shift from exploration to exploitation based on results.
+- **Simplicity criterion** — Complexity cost weighed against improvement magnitude.
+- **Never stop** — Autonomous loop runs until interrupted (when unlimited).
 - **research_program.md is portable** — Can be used with any AI agent.
 - **.auto_research/ is ephemeral** — Gitignored, project-local, disposable.
