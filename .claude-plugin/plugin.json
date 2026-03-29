@@ -1,6 +1,6 @@
 {
   "name": "weed-harness",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Custom skills for Claude Code - productivity workflows",
   "author": {
     "name": "weedmo"
@@ -25,8 +25,7 @@
     "./skills/pr-ready",
     "./skills/release",
     "./skills/scout",
-    "./skills/test-validation",
-    "./skills/tsg"
+    "./skills/test-validation"
   ],
   "hooks": "./hooks/hooks.json"
 }
