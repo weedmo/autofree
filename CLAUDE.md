@@ -96,7 +96,7 @@ Do NOT include `Co-Authored-By` lines in commit messages.
 When reviewing code and finding issues:
 1. **Fix all issues immediately** without asking the user for permission.
 2. After fixing, **run relevant tests**. If tests fail, fix them too.
-3. Log each fix cycle with `/devlog`. Log issues with `/tsg`.
+3. Log each fix cycle with `/devlog`. Log issues with `/devlog tsg`.
 4. Never say "수정할까요?" or "진행할까요?" — just fix it.
 5. The Edit/Write PostToolUse hook will trigger auto-review on your fixes.
 
