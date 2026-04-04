@@ -1,6 +1,6 @@
 {
   "name": "weed-harness",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Custom skills for Claude Code - productivity workflows",
   "author": {
     "name": "weedmo"
@@ -14,18 +14,6 @@
     "harness"
   ],
   "agents": [],
-  "skills": [
-    "./skills/a5c-ai-babysitter-isaac-sim",
-    "./skills/agent-development",
-    "./skills/autocode",
-    "./skills/auto_research",
-    "./skills/commit",
-    "./skills/devlog",
-    "./skills/ecc-tools",
-    "./skills/pr-ready",
-    "./skills/release",
-    "./skills/scout",
-    "./skills/test-validation"
-  ],
+  "skills": [],
   "hooks": "./hooks/hooks.json"
 }

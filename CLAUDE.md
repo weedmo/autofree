@@ -112,3 +112,60 @@ Default active: **weed-harness**, **weed-cowork**, **document-skills** only.
 On-demand activation (user must explicitly request):
 - **oh-my-claudecode**: When orchestration is needed (autopilot, ralph, team, ultrawork, ralplan)
 - **everything-claude-code**: When language-specific patterns/reviews are needed (python-review, cpp-review, deep-research, docs, context-budget)
+
+## Sync Workflow
+
+When the user says **"sync"**, perform the following steps:
+
+### Scope
+
+Sync source: `~/.claude/` (local active config)
+Sync target: `~/my_harness/` (this git repo)
+
+**Sync targets (repo-owned files only):**
+- `hooks/` — all `.sh` files and `hooks.json`
+- `skills/` — only directories already present in repo (do NOT import skills from other plugins like gstack, omc, everything-claude-code, etc.)
+- `agents/` — all files
+- `CLAUDE.md` — the OMC + weed-harness section (between `<!-- OMC:START -->` and the end of file)
+- `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`
+
+**Excluded:** `settings.json`, `settings.local.json`, `plugins/`, `sessions/`, `cache/`, `history.jsonl`, `projects/`, and any other runtime/state files.
+
+### Steps
+
+1. **Diff** — For each sync target, run `diff` between local and repo. Show a summary of changed/added/removed files. If no changes found, stop and report "Already in sync."
+
+2. **Confirm** — Show the diff summary and proceed (do not ask for permission per auto-fix rule).
+
+3. **Copy changes** — Update repo files from local. For new skills directories in repo that don't exist locally, keep them (repo-only files are preserved).
+
+4. **Version bump** — Always patch bump:
+   - Read current version from `.claude-plugin/plugin.json`
+   - Increment patch (e.g., `2.0.1` → `2.0.2`)
+   - Update all 3 locations:
+     - `.claude-plugin/plugin.json` → `"version"`
+     - `.claude-plugin/marketplace.json` → top-level `"version"`
+     - `.claude-plugin/marketplace.json` → `plugins[0].version`
+
+5. **Commit & Push**:
+   ```
+   git add -A
+   git commit -m "chore: bump version to X.Y.Z"
+   git tag vX.Y.Z
+   git push origin main
+   git push origin vX.Y.Z
+   ```
+
+6. **GitHub Release**:
+   ```
+   gh release create vX.Y.Z --generate-notes
+   ```
+
+7. **Marketplace cache sync**:
+   ```bash
+   MARKETPLACE_DIR=~/.claude/plugins/marketplaces/weed-plugins
+   git -C "$MARKETPLACE_DIR" fetch origin
+   git -C "$MARKETPLACE_DIR" reset --hard origin/main
+   ```
+
+8. **Verify** — Confirm tag exists, GitHub release created, marketplace synced. Report results.
