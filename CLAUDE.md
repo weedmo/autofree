@@ -161,11 +161,4 @@ Sync target: `~/my_harness/` (this git repo)
    gh release create vX.Y.Z --generate-notes
    ```
 
-7. **Marketplace cache sync**:
-   ```bash
-   MARKETPLACE_DIR=~/.claude/plugins/marketplaces/weed-plugins
-   git -C "$MARKETPLACE_DIR" fetch origin
-   git -C "$MARKETPLACE_DIR" reset --hard origin/main
-   ```
-
-8. **Verify** — Confirm tag exists, GitHub release created, marketplace synced. Report results.
+7. **Verify** — Confirm tag exists and GitHub release created. Report results.
