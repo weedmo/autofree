@@ -65,6 +65,11 @@ Say "setup omc" or run `/oh-my-claudecode:omc-setup`.
 <!-- OMC:END -->
 
 <!-- User customizations (migrated from previous CLAUDE.md) -->
+
+# Karpathy Coding Guidelines
+
+When doing any code work, invoke the `karpathy-guidelines` skill and follow its principles.
+
 # weed-harness - Global Rules
 
 ## Parallel Execution
@@ -162,3 +167,6 @@ Sync target: `~/my_harness/` (this git repo)
    ```
 
 7. **Verify** — Confirm tag exists and GitHub release created. Report results.
+# graphify
+- **graphify** (`~/.claude/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
+When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` before doing anything else.
