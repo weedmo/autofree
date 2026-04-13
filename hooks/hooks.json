@@ -1,5 +1,5 @@
 {
-  "description": "Karpathy coding guidelines enforcement hooks",
+  "description": "Weed harness hooks",
   "hooks": {
     "UserPromptSubmit": [
       {
