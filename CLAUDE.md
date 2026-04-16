@@ -125,7 +125,7 @@ When the user says **"sync"**, perform the following steps:
 ### Scope
 
 Sync source: `~/.claude/` (local active config)
-Sync target: `~/my_harness/` (this git repo)
+Sync target: `~/autofree/` (this git repo)
 
 **Sync targets (repo-owned files only):**
 - `hooks/` — all `.sh` files and `hooks.json`

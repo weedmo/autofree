@@ -1,8 +1,8 @@
-# Slack-Triggered Claude Code Bot for my-harness
+# Slack-Triggered Claude Code Bot for autofree
 
 **Date:** 2026-04-12  
 **Status:** Approved  
-**Scope:** Automate my-harness plugin modification via Slack messages
+**Scope:** Automate autofree plugin modification via Slack messages
 
 ---
 
@@ -18,17 +18,17 @@ A local Python daemon that listens to a Slack channel, triggers Claude Code CLI 
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
-| `bot.py` | `~/my_harness_bot/` | Slack Socket Mode event handler |
-| `runner.py` | `~/my_harness_bot/` | Claude CLI subprocess executor |
-| `status.py` | `~/my_harness_bot/` | Plugin state scanner + Slack dashboard updater |
-| `system_prompt.md` | `~/my_harness_bot/` | Context injected into every Claude invocation |
-| `state.json` | `~/my_harness_bot/` | Persisted bot state (pinned message ID, last sync time) |
+| `bot.py` | `~/autofree_bot/` | Slack Socket Mode event handler |
+| `runner.py` | `~/autofree_bot/` | Claude CLI subprocess executor |
+| `status.py` | `~/autofree_bot/` | Plugin state scanner + Slack dashboard updater |
+| `system_prompt.md` | `~/autofree_bot/` | Context injected into every Claude invocation |
+| `state.json` | `~/autofree_bot/` | Persisted bot state (pinned message ID, last sync time) |
 | `systemd service` | `/etc/systemd/system/` | Auto-start on boot, restart on failure |
 
 ### Data Flow
 
 ```
-[Slack #my-harness-dev]
+[Slack #autofree-dev]
         |
         | User posts message (free text or /command)
         ↓
@@ -42,11 +42,11 @@ A local Python daemon that listens to a Slack channel, triggers Claude Code CLI 
         |
         | Builds prompt: system_prompt.md + Slack message
         | Runs: claude --print -p "<prompt>"
-        |       Working dir: ~/my_harness/
+        |       Working dir: ~/autofree/
         ↓
 [Claude Code CLI]
         |
-        | - Modifies files in ~/my_harness/
+        | - Modifies files in ~/autofree/
         | - Validates changes (bash -n for hooks, etc.)
         | - git commit + push
         | - Runs sync workflow (version bump + GitHub Release)
@@ -67,8 +67,8 @@ A local Python daemon that listens to a Slack channel, triggers Claude Code CLI 
 
 ### Trigger Conditions
 
-- Bot is mentioned: `@my-harness-bot <request>`
-- All messages in `#my-harness-dev` channel (configurable)
+- Bot is mentioned: `@autofree-bot <request>`
+- All messages in `#autofree-dev` channel (configurable)
 
 ### Message Formats (both accepted)
 
@@ -91,7 +91,7 @@ Parsing is intentionally minimal — Claude receives the full message and interp
 claude --print -p "$(cat system_prompt.md)\n\n## User Request\n{slack_message}"
 ```
 
-Working directory is always `~/my_harness/`. Claude has full tool access to read, edit, run bash, and commit.
+Working directory is always `~/autofree/`. Claude has full tool access to read, edit, run bash, and commit.
 
 ---
 
@@ -99,7 +99,7 @@ Working directory is always `~/my_harness/`. Claude has full tool access to read
 
 The system prompt provides Claude with:
 
-1. **Project context**: `my_harness` is a Claude Code plugin at `~/my_harness/`
+1. **Project context**: `autofree` is a Claude Code plugin at `~/autofree/`
 2. **Directory structure**: hooks/, skills/, agents/, CLAUDE.md, .claude-plugin/
 3. **Sync workflow**: After any change, run the sync process (version bump → commit → push → GitHub Release via `gh release create`)
 4. **Validation steps**: `bash -n` for shell scripts, check hooks.json consistency
@@ -116,12 +116,12 @@ The system prompt provides Claude with:
 
 ## Slack Dashboard (Pinned Message)
 
-A single pinned message in `#my-harness-dev` is created on first run and updated after every successful modification.
+A single pinned message in `#autofree-dev` is created on first run and updated after every successful modification.
 
 ### Format
 
 ```
-📦 my-harness vX.Y.Z
+📦 autofree vX.Y.Z
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🪝 Hooks (N)
   language-rule.sh, tsg-bash-failure.sh, devlog-auto-trigger.sh,
@@ -145,10 +145,10 @@ A single pinned message in `#my-harness-dev` is created on first run and updated
 
 ### Update Logic (`status.py`)
 
-1. Scan `~/my_harness/hooks/` → list `.sh` files
-2. Scan `~/my_harness/skills/` → list subdirectories with `SKILL.md`
-3. Scan `~/my_harness/agents/` → list `.md` files
-4. Read version from `~/my_harness/.claude-plugin/plugin.json`
+1. Scan `~/autofree/hooks/` → list `.sh` files
+2. Scan `~/autofree/skills/` → list subdirectories with `SKILL.md`
+3. Scan `~/autofree/agents/` → list `.md` files
+4. Read version from `~/autofree/.claude-plugin/plugin.json`
 5. Count entries in `~/.claude/projects/-home-weed/memory/MEMORY.md` (H2 sections)
 6. Read installed plugins from `~/.claude/plugins/`
 7. Render message string
@@ -160,19 +160,19 @@ A single pinned message in `#my-harness-dev` is created on first run and updated
 ## Systemd Service
 
 ```ini
-# /etc/systemd/system/my-harness-bot.service
+# /etc/systemd/system/autofree-bot.service
 [Unit]
-Description=my-harness Slack Bot
+Description=autofree Slack Bot
 After=network.target
 
 [Service]
 Type=simple
 User=weed
-WorkingDirectory=/home/weed/my_harness_bot
+WorkingDirectory=/home/weed/autofree_bot
 ExecStart=/home/weed/miniconda3/bin/python bot.py
 Restart=on-failure
 RestartSec=10
-EnvironmentFile=/home/weed/my_harness_bot/.env
+EnvironmentFile=/home/weed/autofree_bot/.env
 
 [Install]
 WantedBy=multi-user.target
@@ -199,7 +199,7 @@ Environment variables (`.env`):
 ## Setup Steps (high-level)
 
 1. Create Slack app at api.slack.com → enable Socket Mode → get tokens
-2. Add bot to `#my-harness-dev` channel
+2. Add bot to `#autofree-dev` channel
 3. `pip install slack-bolt`
 4. Write `bot.py`, `runner.py`, `status.py`, `system_prompt.md`
 5. Create `.env` with tokens

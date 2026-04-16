@@ -6,7 +6,7 @@ Claude Code plugin — productivity skills for autonomous coding, research, and 
 
 ```bash
 # Add marketplace
-/plugin marketplace add weedmo/my_harness
+/plugin marketplace add weedmo/autofree
 
 # Install
 /plugin install weed-harness@weed-plugins
@@ -15,7 +15,7 @@ Claude Code plugin — productivity skills for autonomous coding, research, and 
 Or via CLI:
 
 ```bash
-claude plugin marketplace add https://github.com/weedmo/my_harness.git
+claude plugin marketplace add https://github.com/weedmo/autofree.git
 claude plugin install weed-harness@weed-plugins
 ```
 
