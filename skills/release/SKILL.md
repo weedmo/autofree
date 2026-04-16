@@ -132,7 +132,7 @@ echo "=== Release Verification ==="
 git -C ~/.claude tag -l vNEW_VERSION | grep -q vNEW_VERSION && echo "✓ Tag vNEW_VERSION exists" || echo "✗ Tag missing"
 
 # GitHub Release exists
-gh release view vNEW_VERSION --repo weedmo/autofree &>/dev/null && echo "✓ GitHub Release exists" || echo "✗ GitHub Release missing"
+gh release view vNEW_VERSION --repo weedmo/my_harness &>/dev/null && echo "✓ GitHub Release exists" || echo "✗ GitHub Release missing"
 
 # Cache exists
 [ -d ~/.claude/plugins/cache/weed-plugins/weed-harness/NEW_VERSION ] && echo "✓ Cache directory exists" || echo "✗ Cache missing"
