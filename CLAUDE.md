@@ -197,8 +197,10 @@ Sync target: `~/autofree/` (this git repo)
 - `agents/` — all files
 - `CLAUDE.md` — the OMC + weed-harness section (between `<!-- OMC:START -->` and the end of file)
 - `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`
+- `settings.json` — local active settings (statusLine, env, hooks, permissions). ALWAYS include unconditionally.
+- `hud/` — all files (statusLine HUD scripts referenced by settings.json)
 
-**Excluded:** `settings.json`, `settings.local.json`, `plugins/`, `sessions/`, `cache/`, `history.jsonl`, `projects/`, and any other runtime/state files.
+**Excluded:** `settings.local.json` (project-private overrides), `plugins/`, `sessions/`, `cache/`, `history.jsonl`, `projects/`, and any other runtime/state files.
 
 ### Steps
 

@@ -27,7 +27,7 @@ transcripts/
 shell-snapshots/
 
 # Local settings & state
-settings.json
+# settings.json — tracked unconditionally (statusLine, env, hooks, permissions)
 settings.local.json
 stats-cache.json
 paste-cache/
@@ -36,7 +36,11 @@ todos/
 plans/
 !docs/superpowers/plans/
 !docs/superpowers/specs/
-plugins/
+/plugins/
+!/plugins/
+/plugins/*
+!/plugins/weed-harness/
+!/plugins/weed-harness/**
 scripts/
 
 # Runtime & OMC state
@@ -44,7 +48,7 @@ scripts/
 .omc-config.json
 .session-stats.json
 mcp-needs-auth-cache.json
-hud/
+# hud/ — tracked unconditionally (statusLine HUD scripts)
 ide/
 remote/
 backups/
