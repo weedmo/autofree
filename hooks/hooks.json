@@ -23,6 +23,18 @@
           }
         ]
       }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/codex-task-review.sh\"",
+            "timeout": 900,
+            "asyncRewake": true
+          }
+        ]
+      }
     ]
   }
 }
