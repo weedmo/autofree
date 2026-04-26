@@ -169,11 +169,6 @@ When reviewing code and finding issues:
 4. Never say "수정할까요?" or "진행할까요?" — just fix it.
 5. The Edit/Write PostToolUse hook will trigger auto-review on your fixes.
 
-## Scout Before Complex Tasks
-
-For non-trivial tasks, use `/scout` to gather context before planning or implementation.
-This launches parallel Explore agents that map out relevant files, code, tests, and dependencies.
-
 ## Plugin Activation Policy
 
 Default active: **weed-harness**, **weed-cowork**, **document-skills** only.

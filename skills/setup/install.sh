@@ -7,6 +7,7 @@
 #   install.sh hud         # install HUD (statusLine + hud/ copy)
 #   install.sh codex       # install codex plugin + custom SubagentStop hook
 #   install.sh hooks       # register weed-harness extra hooks in settings.json
+#   install.sh gstack      # clone garrytan/gstack and run its installer
 #   install.sh status      # report what is/isn't installed (no writes)
 #
 # Resolves plugin root from CLAUDE_PLUGIN_ROOT (set by Claude Code) or
@@ -244,6 +245,44 @@ else:
   done
 }
 
+# ---------- step: gstack ----------
+
+setup_gstack() {
+  printf '\n[gstack] garrytan/gstack skills\n'
+  local gstack_dir="${USER_HOME}/.claude/skills/gstack"
+
+  if ! command -v bun >/dev/null 2>&1; then
+    warn "bun not installed — gstack requires bun"
+    warn "install: curl -fsSL https://bun.sh/install | bash"
+    warn "skipping gstack (run 'install.sh gstack' after installing bun)"
+    return 0
+  fi
+
+  if [ ! -d "$gstack_dir" ]; then
+    log "cloning gstack into $gstack_dir..."
+    mkdir -p "$(dirname "$gstack_dir")"
+    if ! git clone --depth 1 https://github.com/garrytan/gstack "$gstack_dir" 2>&1 | sed 's/^/    /'; then
+      err "gstack clone failed"
+      return 1
+    fi
+    ok "gstack cloned"
+  else
+    skip "gstack present at $gstack_dir"
+  fi
+
+  if [ ! -x "$gstack_dir/setup" ]; then
+    err "$gstack_dir/setup not found or not executable"
+    return 1
+  fi
+
+  log "running gstack setup --host claude..."
+  if bash "$gstack_dir/setup" --host claude 2>&1 | sed 's/^/    /'; then
+    ok "gstack setup complete"
+  else
+    warn "gstack setup returned non-zero — check output above"
+  fi
+}
+
 # ---------- status ----------
 
 status() {
@@ -283,6 +322,21 @@ if not found:
   for s in tsg-bash-failure.sh merge-conflict-trigger.sh devlog-hook.sh gstack-skill-filter.sh language-rule.sh; do
     if grep -q "$s" "$SETTINGS" 2>/dev/null; then ok "$s registered"; else warn "$s NOT registered"; fi
   done
+  printf '\n[gstack]\n'
+  local gstack_dir="${USER_HOME}/.claude/skills/gstack"
+  if [ -d "$gstack_dir" ]; then
+    ok "gstack present at $gstack_dir"
+    local n
+    n=$(find "${USER_HOME}/.claude/skills" -maxdepth 1 -type l -lname 'gstack/*' 2>/dev/null | wc -l)
+    if [ "$n" -gt 0 ]; then
+      ok "$n gstack skill symlinks registered"
+    else
+      warn "no gstack skill symlinks found — run 'install.sh gstack' to register"
+    fi
+  else
+    warn "gstack NOT installed — run 'install.sh gstack'"
+  fi
+  if command -v bun >/dev/null 2>&1; then ok "bun available ($(bun --version 2>/dev/null))"; else warn "bun NOT installed (gstack requires it)"; fi
 }
 
 # ---------- main ----------
@@ -295,15 +349,17 @@ case "$cmd" in
     setup_hud
     setup_codex
     setup_hooks
+    setup_gstack
     printf '\nDone. Restart Claude Code to apply hooks/statusLine changes.\n'
     ;;
   hud)    setup_hud ;;
   codex)  setup_codex ;;
   hooks)  setup_hooks ;;
+  gstack) setup_gstack ;;
   status) status ;;
   *)
     err "Unknown command: $cmd"
-    printf 'Usage: %s [all|hud|codex|hooks|status]\n' "$(basename "$0")"
+    printf 'Usage: %s [all|hud|codex|hooks|gstack|status]\n' "$(basename "$0")"
     exit 1
     ;;
 esac

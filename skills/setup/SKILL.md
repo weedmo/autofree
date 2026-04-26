@@ -1,6 +1,6 @@
 ---
 name: setup
-description: "weed-harness 사용자 환경 셋업 — statusLine HUD 설치, OpenAI Codex 플러그인 연결, custom SubagentStop hook (rewakeMessage), 추가 hooks (devlog, language-rule, gstack-skill-filter 등) 등록. 멱등(idempotent)이라 여러 번 실행해도 안전. 트리거: '/setup', 'setup hud', 'plugin 설치 후 설정', 'codex 연결', 'statusLine 등록'."
+description: "weed-harness 사용자 환경 셋업 — statusLine HUD 설치, OpenAI Codex 플러그인 연결, custom SubagentStop hook (rewakeMessage), 추가 hooks (devlog, language-rule, gstack-skill-filter 등) 등록, garrytan/gstack 스킬셋 설치. 멱등(idempotent)이라 여러 번 실행해도 안전. 트리거: '/setup', 'setup hud', 'plugin 설치 후 설정', 'codex 연결', 'statusLine 등록', 'gstack 설치'."
 ---
 
 # weed-harness setup
@@ -15,6 +15,7 @@ Claude Code 플러그인은 `skills/`, `agents/`, `hooks/hooks.json`, MCP 서버
 - **외부 플러그인 의존성** (예: `codex@openai-codex`) 은 별도 설치 필요
 - **`rewakeMessage`/`rewakeSummary`** 같은 커스텀 hook 옵션은 plugin hooks.json으로는 표현 불가 (사용자 settings.json에 직접 박아야 함)
 - 일부 hook (devlog, language-rule, gstack-skill-filter 등) 은 의도적으로 plugin hooks.json에 안 넣음 → opt-in으로 사용자가 등록
+- **gstack 스킬셋** (`benchmark`, `browse`, `canary`, `investigate`, `qa`, `health`, `learn`, `ship`, `land-and-deploy` 등 20개) 은 별도 repo (`garrytan/gstack`) 에서 가져옴 → weed-harness가 직접 들고있지 않고 setup 단계에서 clone + 자체 installer 호출
 
 ## 사용법
 
@@ -23,6 +24,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh"          # 전체 셋업
 bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" hud      # HUD만
 bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" codex    # Codex 플러그인 + hook
 bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" hooks    # 추가 hook 등록
+bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" gstack   # gstack clone + installer
 bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" status   # 현재 상태만 보기 (변경 없음)
 ```
 
@@ -33,6 +35,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" status   # 현재 상태만
    - "setup hud", "statusLine 등록해줘" → `install.sh hud`
    - "setup codex", "codex 연결" → `install.sh codex`
    - "setup hooks", "hook 등록" → `install.sh hooks`
+   - "setup gstack", "gstack 설치" → `install.sh gstack`
    - "setup status", "뭐 설치되어 있어?" → `install.sh status`
 
 2. 해당 명령을 Bash 도구로 실행. 출력은 그대로 사용자에게 보여줌.
@@ -75,6 +78,16 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" status   # 현재 상태만
 
 각 hook script 가 사용자 `~/.claude/hooks/` 에 없으면 plugin에서 복사. 등록은 같은 matcher group에 합쳐짐.
 
+### `gstack`
+
+`garrytan/gstack` 스킬셋을 사용자 환경에 설치. weed-harness는 gstack 스킬을 직접 들고있지 않음 — setup 단계에서 가져옴.
+
+- **사전요구**: `bun` 설치 필요 (없으면 안내만 하고 skip, exit 0)
+- `~/.claude/skills/gstack/` 없으면 `git clone --depth 1 https://github.com/garrytan/gstack` 으로 clone
+- `~/.claude/skills/gstack/setup --host claude` 실행 → gstack의 자체 installer가 `qa`, `browse`, `investigate` 등의 심볼릭 링크를 `~/.claude/skills/` 한 레벨에 등록 (Claude Code가 발견할 수 있도록)
+- 이미 clone되어 있으면 setup만 재실행 (멱등)
+- 실제 활성화는 Claude Code 재시작 후
+
 ## 멱등성 / 안전성
 
 - 모든 단계가 "현재 상태 검사 → 필요하면 변경" 방식
@@ -89,6 +102,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" status   # 현재 상태만
 - statusLine 등록 여부
 - codex 플러그인 설치 여부
 - 각 hook 등록 여부
+- gstack 디렉토리 + 심볼릭 링크 개수, bun 설치 여부
 
 ## 재시작 필요
 

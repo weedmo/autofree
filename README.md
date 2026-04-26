@@ -1,8 +1,10 @@
 # weed-harness
 
-Claude Code plugin — productivity skills for autonomous coding, research, and development workflows.
+Productivity skills for autonomous coding, research, and development workflows, packaged for Claude Code and Codex.
 
-## Quick Install
+## Claude Code
+
+### Quick Install
 
 ```bash
 # Add marketplace
@@ -18,6 +20,20 @@ Or via CLI:
 claude plugin marketplace add https://github.com/weedmo/autofree.git
 claude plugin install weed-harness@weed-plugins
 ```
+
+## Codex
+
+Add the marketplace:
+
+```bash
+codex marketplace add weedmo/autofree
+```
+
+The installed Codex CLI currently exposes `marketplace add`, but not a separate `install` subcommand. After adding the marketplace, restart Codex if needed and enable `weed-harness` from Codex's plugin UI.
+
+The Codex package lives in `plugins/weed-harness/` and is independently installable because it carries copied `skills/` and `agents/` content inside the plugin directory.
+
+Current limitation: Claude-specific hook automation and slash-command behavior are not part of the Codex package.
 
 ## Skills
 
@@ -36,7 +52,7 @@ claude plugin install weed-harness@weed-plugins
 | `/ecc-tools` | Skill combination advisor for document-skills workflows |
 | `/a5c-ai-babysitter-isaac-sim` | NVIDIA Isaac Sim simulation and synthetic data generation |
 
-## Configuration
+## Claude Configuration
 
 Enable the plugin in `~/.claude/settings.json`:
 
@@ -48,7 +64,7 @@ Enable the plugin in `~/.claude/settings.json`:
 }
 ```
 
-## Updating
+## Claude Updates
 
 ```bash
 /plugin marketplace update weed-plugins
