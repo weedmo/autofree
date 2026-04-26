@@ -232,7 +232,42 @@ Sync target: `~/autofree/` (this git repo)
    gh release create vX.Y.Z --generate-notes
    ```
 
-7. **Verify** — Confirm tag exists and GitHub release created. Report results.
+7. **Local plugin update** — Pull the new release into the local Claude Code plugin cache so this machine actually runs the version we just published:
+   ```bash
+   MARKETPLACE_DIR=~/.claude/plugins/marketplaces/weed-plugins
+   # Ensure remote URL is current (repo was renamed my_harness → autofree)
+   git -C "$MARKETPLACE_DIR" remote set-url origin https://github.com/weedmo/autofree.git
+   git -C "$MARKETPLACE_DIR" fetch origin --tags
+   git -C "$MARKETPLACE_DIR" reset --hard origin/main
+
+   # Refresh plugin cache to new version
+   CACHE_BASE=~/.claude/plugins/cache/weed-plugins/weed-harness
+   rm -rf "$CACHE_BASE"/*/
+   mkdir -p "$CACHE_BASE/X.Y.Z"
+   rsync -a --exclude='.git' --exclude='plugins/' --exclude='node_modules/' "$MARKETPLACE_DIR/" "$CACHE_BASE/X.Y.Z/"
+
+   # Update installed_plugins.json (use Python to keep JSON valid)
+   python3 - <<'PY'
+   import json, datetime, pathlib
+   p = pathlib.Path.home() / ".claude/plugins/installed_plugins.json"
+   data = json.loads(p.read_text())
+   entry = data["plugins"]["weed-harness@weed-plugins"][0]
+   entry["version"] = "X.Y.Z"
+   entry["installPath"] = f"/home/weed/.claude/plugins/cache/weed-plugins/weed-harness/X.Y.Z"
+   entry["lastUpdated"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
+   import subprocess
+   entry["gitCommitSha"] = subprocess.check_output(["git","-C",str(pathlib.Path.home()/".claude/plugins/marketplaces/weed-plugins"),"rev-parse","HEAD"]).decode().strip()
+   p.write_text(json.dumps(data, indent=2))
+   PY
+   ```
+
+8. **Verify** — Confirm ALL of:
+   - Tag `vX.Y.Z` exists on GitHub (`gh release view vX.Y.Z --repo weedmo/autofree`)
+   - Marketplace clone HEAD matches origin/main
+   - Cache dir `~/.claude/plugins/cache/weed-plugins/weed-harness/X.Y.Z/` exists with `.claude-plugin/plugin.json` showing version X.Y.Z
+   - `installed_plugins.json` entry for `weed-harness@weed-plugins` shows `"version": "X.Y.Z"` and matching `installPath`
+
+   Note: a Claude Code restart is required for skills/hooks/agents from the new version to be loaded. Report this in the final summary.
 # graphify
 - **graphify** (`~/.claude/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
 When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` before doing anything else.
