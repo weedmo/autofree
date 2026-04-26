@@ -1,17 +1,21 @@
 ---
 name: autocode
-description: "Autonomous code improvement loop with optional 23-stage research pipeline (AutoResearchClaw). Subcommands: install (researchclaw), init [N] (max iterations, default 10, 0=unlimited), run (execute pipeline), status (progress), resume (checkpoint). Features: PIVOT/REFINE decision logic, quality gates, self-learning from failures, stage selection UI. Falls back to direct Claude Code execution when researchclaw is not installed."
+description: "Autonomous code improvement loop with PGE (Plan-Generate-Execute) team mode. Single-agent mode: sequential experiments with PIVOT/REFINE logic. PGE mode: team-based experiments with retrospective-driven architecture redesign. Optional 23-stage research pipeline (AutoResearchClaw). Subcommands: install, init, run, status, resume."
 argument-hint: "<subcommand: install|init|run|status|resume> [iterations]"
 ---
 
 # Autocode — Autonomous Code Improvement
 
-Autonomous experiment loop for code improvement with an optional 23-stage research pipeline.
-Modify target code, measure metrics, keep improvements, discard regressions. Supports bounded
-iteration counts, quality gates, PIVOT/REFINE decision logic, and self-learning from past failures.
+Autonomous experiment loop for code improvement with two execution modes:
 
-Built on [AutoResearchClaw](https://github.com/aiming-lab/AutoResearchClaw) when installed;
-falls back to direct Claude Code execution otherwise.
+- **Single mode**: One agent modifies code, measures metrics, keeps improvements, discards regressions.
+  PIVOT/REFINE decision logic for strategy adjustment within a fixed architecture.
+- **PGE mode**: Team of agents (Planner/Generator/Evaluator) runs experiments. On plateau,
+  spawns Researcher and Architect to find new optimization directions and redesign the architecture.
+  Escapes local optima through retrospective-driven architecture evolution.
+
+Both modes support bounded iterations, quality gates, self-learning from past failures,
+and an optional 23-stage research pipeline via [AutoResearchClaw](https://github.com/aiming-lab/AutoResearchClaw).
 
 Inspired by [autoresearch](https://github.com/karpathy/autoresearch) — same pattern, generalized beyond ML training.
 
@@ -22,10 +26,10 @@ Inspired by [autoresearch](https://github.com/karpathy/autoresearch) — same pa
 | Command | Action | User Confirmation |
 |---------|--------|-------------------|
 | `/autocode install` | Clone AutoResearchClaw + pip install | Not needed |
-| `/autocode init [N]` | Interactive setup, generate `program.md`. N = max iterations (default 10, 0 = unlimited) | Required |
-| `/autocode run` | Execute pipeline based on `program.md` | Not needed (autonomous) |
-| `/autocode status` | Show progress, stage, iteration count | Not needed |
-| `/autocode resume` | Resume from checkpoint | Not needed |
+| `/autocode init [N]` | Extended HITL interview, generate `program.md`, select mode (single/pge). N = max iterations (default 10, 0 = unlimited) | Required |
+| `/autocode run` | Execute based on mode in `program.md` (single or pge) | Not needed (autonomous) |
+| `/autocode status` | Show progress, including architecture version and redesign history (pge) | Not needed |
+| `/autocode resume` | Resume from checkpoint (supports both modes) | Not needed |
 
 ## Procedure
 
@@ -100,33 +104,59 @@ Extract N from arguments. Examples:
 - `/autocode init 20` -> `max_iterations=20`
 - `/autocode init 0` -> `max_iterations=0` (unlimited)
 
-#### 2B: Gather Information
+#### 2B: Gather Information (Brainstorming Pattern)
 
-Ask the user these questions (use `AskUserQuestion` for each):
+Ask questions **one at a time** using `AskUserQuestion`. Generate dynamic follow-up questions based on answers. Loop until all required fields are filled.
 
-1. **Target**: What file(s) should the agent modify?
-   - Example: `src/parser.py`, `lib/engine.ts`
-   - Recommend: single file or small module for best results
+**Required fields** (init cannot complete until all are filled):
 
-2. **Metric**: How do we measure success? (must be a single number, lower or higher is better)
-   - Performance: `pytest-benchmark` output, request latency, throughput
-   - Size: bundle size, binary size, memory usage
-   - Quality: test count, lint warning count, type coverage %
-   - Custom: any command that outputs a number
+| Field | Question | Default |
+|-------|----------|---------|
+| `autocode_target_files` | "Which file(s) should the agent modify?" | — |
+| `autocode_metric_name` | "What metric measures success? (e.g., latency_ms, bundle_bytes)" | — |
+| `autocode_metric_command` | "Shell command to extract the metric as a single number?" | — |
+| `autocode_metric_direction` | "Is lower or higher better?" | — |
+| `autocode_guard_command` | "What must pass before accepting a change? (tests, lint, type check)" | — |
+| `autocode_architecture_context` | "Describe the current system structure" | — |
+| `autocode_scope_boundary` | "How far can changes go? (function / module / system)" | — |
+| `autocode_forbidden_zones` | "Any areas that must not be touched?" | `[]` |
+| `autocode_max_iterations` | "Maximum experiment count?" | `10` |
+| `autocode_performance_target` | "Target metric value? (optional, for early termination)" | `null` |
 
-3. **Metric command**: The exact shell command to extract the metric number.
-   - Example: `pytest --benchmark-only --benchmark-json=bench.json && python -c "import json; print(json.load(open('bench.json'))['benchmarks'][0]['stats']['mean'])"`
-   - Example: `wc -c dist/bundle.js | awk '{print $1}'`
+**Defaults (not asked):**
 
-4. **Direction**: Is lower better or higher better?
-   - `lower` = minimize (latency, bundle size, error count)
-   - `higher` = maximize (throughput, test coverage, score)
+| Field | Default |
+|-------|---------|
+| `autocode_time_budget` | unlimited |
+| `autocode_redesign_budget` | unlimited |
 
-5. **Guard command**: What must pass before we accept a change? (tests, lint, type check)
-   - Example: `pytest && mypy src/`
-   - Can be empty if no guards needed
+**Dynamic follow-up rules:**
 
-6. **Time budget per experiment** (optional, default: 2 minutes)
+After each answer, check if a follow-up question is needed:
+
+| Answer Pattern | Follow-up Question |
+|----------------|-------------------|
+| `autocode_target_files` is a directory | "Any hot-path files in this directory?" |
+| `autocode_guard_command` is tests only | "Include type check or lint in the guard?" |
+| `autocode_scope_boundary` >= module | "Must interface compatibility be maintained?" |
+| `autocode_scope_boundary` = system-wide | "Any external system dependencies?" |
+| `autocode_architecture_context` mentions constraints | "What are the immutable constraints?" |
+
+**Completion gate:**
+
+After each answer, check the required fields table. If any required field (without a default) is still empty, ask the next question for that field. If all required fields are filled, proceed to Stage Selection (2C).
+
+**Interview order** (recommended, but adapt based on answers):
+1. `autocode_target_files` (+ follow-up if directory)
+2. `autocode_metric_name`
+3. `autocode_metric_command`
+4. `autocode_metric_direction`
+5. `autocode_guard_command` (+ follow-up if tests only)
+6. `autocode_architecture_context` (+ follow-up if constraints mentioned)
+7. `autocode_scope_boundary` (+ follow-up if module or system)
+8. `autocode_forbidden_zones`
+9. `autocode_max_iterations`
+10. `autocode_performance_target`
 
 #### 2C: Stage Selection UI
 
@@ -166,46 +196,60 @@ After gathering basic info, present the 23-stage pipeline via `AskUserQuestion` 
 
 Create `$AUTOCODE_DIR/program.md` with the gathered information:
 
-```markdown
+~~~markdown
 # Autocode Program
 
 ## Target
 
-- **Files to modify**: {target_files}
-- **Read-only context**: {any files the agent should read but not modify}
+- **files**: {autocode_target_files}
+- **read_only_context**: {any files the agent should read but not modify}
 
 ## Metric
 
-- **Command**: `{metric_command}`
-- **Direction**: {lower|higher} is better
-- **Name**: {metric_name} (e.g., "latency_ms", "bundle_bytes", "test_count")
+- **name**: {autocode_metric_name}
+- **command**: `{autocode_metric_command}`
+- **direction**: {lower|higher}
 
 ## Guard
 
-Before accepting any change, this must pass:
 ```
-{guard_command}
+{autocode_guard_command}
 ```
 
-## Constraints
+## Architecture
 
-- **Time budget**: {time_budget} per experiment
-- **Do NOT**: {any restrictions}
+- **context**: {autocode_architecture_context}
+- **scope**: {autocode_scope_boundary}
+- **interface_compat**: {true|false, from follow-up question}
+- **forbidden_zones**: [{autocode_forbidden_zones}]
+- **immutable_constraints**: [{constraints from follow-up}]
 
-## Strategy hints
+## Termination
 
-{Optional section}
+- **max_iterations**: {autocode_max_iterations} (0=unlimited)
+- **performance_target**: {autocode_performance_target|null}
 
-## Pipeline Configuration
+## Mode
 
-- **max_iterations**: {N}
-- **selected_stages**: [{list of stage IDs}]
-- **pivot_limit**: 2
-- **refine_limit**: 2
-- **researchclaw_available**: {true|false}
+- **execution_mode**: {single|pge, set in Step 2E}
+
+## Pipeline
+
+- **selected_stages**: [{list of stage IDs from 2C}]
 - **quality_gate_stages**: [5, 9, 20]
 - **lessons_enabled**: true
-```
+- **researchclaw_available**: {true|false}
+
+## Plateau Detection
+
+- **consecutive_discard_threshold**: 3
+- **improvement_rate_threshold**: 0.5
+- **hard_discard_limit**: 5
+
+## Strategy Hints
+
+{Optional: user-provided hints or dynamically collected additional context}
+~~~
 
 Also initialize:
 - `$AUTOCODE_DIR/results.tsv` with header: `iteration\tstage\tcommit\tmetric\tstatus\tdescription\tdelta`
@@ -219,9 +263,156 @@ Add `.autocode/` to `.gitignore` if not already there (ask user first).
 Present the generated program.md via `AskUserQuestion` with options:
 [Approve and save] [Edit and regenerate] [Start over]
 
+#### 2E: Mode Selection
+
+After the user approves `program.md`, ask via `AskUserQuestion`:
+
+> How should experiments run?
+>
+> 1. **Single** — One agent, sequential experiments. Classic autocode loop with PIVOT/REFINE logic.
+> 2. **PGE** — Team of agents (Planner/Generator/Evaluator). On plateau, spawns Researcher
+>    and Architect to find new optimization directions and redesign the architecture.
+
+Store the chosen mode in:
+- `$AUTOCODE_DIR/mode.txt` (`single` or `pge`)
+- `program.md` → `## Mode` → `execution_mode: {single|pge}`
+
+If PGE mode is selected, also initialize:
+- `$AUTOCODE_DIR/plans/` directory
+- `$AUTOCODE_DIR/architectures/` directory
+- `$AUTOCODE_DIR/retrospectives/` directory
+- `$AUTOCODE_DIR/research/` directory
+- `$AUTOCODE_DIR/architectures/v1.md` — initial architecture document based on `autocode_architecture_context`
+
+---
+
+### PGE State Machine
+
+**Applies only when `execution_mode=pge`.**
+
+#### State File: `.omc/state/autocode-pge-state.json`
+
+```json
+{
+  "active": true,
+  "mode": "pge",
+  "session_id": "<current_session_id>",
+  "outer_loop": {
+    "architecture_version": 1,
+    "redesign_count": 0
+  },
+  "inner_loop": {
+    "iteration": 5,
+    "max_iterations": 50,
+    "phase": "experiment",
+    "consecutive_discards": 0,
+    "improvement_rate_window": []
+  },
+  "plateau": {
+    "detected": false,
+    "trigger_reason": null,
+    "researcher_pending": false,
+    "architect_pending": false
+  },
+  "termination": {
+    "reason": null,
+    "target_metric": null,
+    "target_reached": false,
+    "budget_exhausted": false
+  },
+  "best": {
+    "metric": 145.3,
+    "commit": "a1b2c3d",
+    "architecture_version": 1
+  }
+}
+```
+
+#### Phase Transitions
+
+```
+[pge_init] → [plan] → [experiment] → [evaluate]
+                ↑                         │
+                │                    plateau?
+                │                   /       \
+                │                 NO        YES
+                │                  ↓          ↓
+                │            [experiment]  [retrospect]
+                │                              ↓
+                │                        [research]
+                │                              ↓
+                │                        [redesign]
+                │                              ↓
+                │                     budget check
+                │                    /            \
+                │                 OK            exhausted
+                │                  ↓                ↓
+                └──────────── [plan]          [terminated]
+
+[evaluate] → target reached? → YES → [terminated]
+```
+
+#### Plateau Detection (Compound Trigger)
+
+```
+plateau_detected = (
+  consecutive_discards >= 3
+  AND improvement_rate(last_5) < 0.5%
+) OR (
+  consecutive_discards >= 5
+) OR (
+  time_since_last_keep > time_budget * 3
+)
+```
+
+#### Hook Integration
+
+- Extends `persistent-mode.mjs` — `autocode-pge-state.json` with `active=true` activates boulder pattern
+- Loop continues until phase reaches `terminated`
+- Atomic writes on every phase transition via `Write` tool
+- Session-scoped ownership prevents cross-session interference
+
+---
+
+### PGE Agent Roles
+
+**Applies only when `execution_mode=pge`.**
+
+#### Core Agents (active every iteration)
+
+| Agent | Model | Role | Input | Output |
+|-------|-------|------|-------|--------|
+| **Planner** | sonnet | Create experiment plan from architecture + prior results | `architectures/v{N}.md`, `results.tsv`, `lessons/` | `plans/plan_{iter}.md` |
+| **Generator** | sonnet | Edit code → run guard → measure metric | plan, target files | commit, metric value, status(keep/discard/crash) |
+| **Evaluator** | opus | Analyze results, plateau detection, keep/discard decision | `results.tsv`, recent experiments, code diffs | plateau verdict, retrospective report |
+
+#### On-Demand Agents (spawned at plateau only)
+
+| Agent | Model | Role | Input | Output |
+|-------|-------|------|-------|--------|
+| **Researcher** | sonnet | Web/codebase search for new optimization techniques | retrospective, current architecture, exhausted directions | `research/research_{N}.md` |
+| **Architect** | opus | Redesign architecture based on research + experiment history | research results, `results.tsv`, `architectures/v{N}.md` | `architectures/v{N+1}.md` |
+
+#### Agent Lifecycle
+
+- All agents spawned via `Agent()` tool, fresh each iteration (stateless — clean context window).
+- On-demand agents spawned in foreground (need results before continuing).
+- Communication is file-based via `.autocode/` directory. No direct messaging.
+- See 3P-C and 3P-D for detailed spawn specifications.
+
 ---
 
 ### Step 3: Run (`/autocode run`)
+
+#### 3-Mode: Mode Detection
+
+1. Read `$PROGRAM_FILE` to determine `execution_mode`.
+2. If `execution_mode == "single"`: proceed to **Single Mode (3A-3M)** below.
+3. If `execution_mode == "pge"`: proceed to **PGE Mode (3P)** below.
+
+#### Single Mode (3A-3M)
+
+**Applies when `execution_mode=single`.** This is the original autocode experiment loop, unchanged from v1. PIVOT/REFINE/PROCEED logic handles plateau within a fixed architecture.
 
 #### 3A: Pre-flight checks
 
@@ -459,13 +650,164 @@ If an experiment exceeds the time budget: kill the process, treat as `crash`, re
 
 ---
 
+#### PGE Mode (3P)
+
+**Applies when `execution_mode=pge`.** Team-based experiment loop with retrospective-driven architecture redesign.
+
+#### 3P-A: Pre-flight Checks
+
+1-5. Same as Single Mode 3A (verify program.md, read config, verify targets, run guard, load lessons).
+6. Create experiment branch: `git checkout -b autocode-pge/{date}` from current branch.
+7. Read or create initial architecture: `$AUTOCODE_DIR/architectures/v1.md`.
+8. Initialize PGE state file `.omc/state/autocode-pge-state.json` with initial values.
+
+#### 3P-B: Establish Baseline
+
+1. Run the metric command on unmodified code.
+2. Validate metric output is a finite number. If parsing fails, abort with error.
+3. Record baseline in `results.tsv`.
+4. Update state: `best.metric = baseline_value`, `inner_loop.phase = "plan"`.
+5. Display:
+   ```
+   PGE Baseline established:
+   - {autocode_metric_name}: {baseline_value}
+   - Branch: autocode-pge/{date}
+   - Architecture: v1
+   - Max iterations: {N} (0 = unlimited)
+   - Performance target: {target or "none"}
+   - Starting PGE loop...
+   ```
+
+#### 3P-C: Inner Loop (Experiments)
+
+```
+for each iteration in 1..max_iterations (or forever if 0):
+    load_lessons()
+
+    # 1. PLAN
+    Update state: phase="plan"
+    Spawn Planner agent (sonnet):
+      - Read architectures/v{N}.md, results.tsv, lessons/
+      - Write plans/plan_{iter}.md
+
+    # 2. GENERATE
+    Update state: phase="experiment"
+    Spawn Generator agent (sonnet):
+      - Read plan, edit target files
+      - git commit -m "experiment: {description}"
+      - Run guard → fail: retry x2, still fail → crash, revert
+      - Run metric command → log to logs/exp_{iter}.log
+
+    # 3. EVALUATE
+    Update state: phase="evaluate"
+    Spawn Evaluator agent (opus):
+      - Judge: keep/discard/crash
+        - keep: update best baseline in results.tsv
+        - discard: git reset --hard HEAD~1
+        - crash: git reset --hard HEAD~1
+      - Extract lesson → lessons/lesson_{N}.json
+      - Plateau detection (compound trigger):
+        plateau = (consecutive_discards >= 3 AND improvement_rate(last_5) < 0.5%)
+               OR (consecutive_discards >= 5)
+
+    # 4. BRANCH
+    if plateau_detected:
+        → Exit inner loop, enter Outer Loop (3P-D)
+    elif iteration >= max_iterations and max_iterations > 0:
+        → Terminate (3P-F) with reason="budget_exhausted"
+    elif best.metric meets performance_target:
+        → Terminate (3P-F) with reason="target_reached"
+    else:
+        → Next iteration
+```
+
+#### 3P-D: Outer Loop (Strategic — on plateau)
+
+Triggered when Evaluator detects plateau.
+
+```
+# 1. RETROSPECT
+Update state: phase="retrospect"
+Spawn Evaluator (opus, retrospective mode):
+  - Read results.tsv, architectures/v{N}.md, git log
+  - Write retrospectives/retro_v{N}.md:
+    ## Metric Trend
+    ## Effective Patterns
+    ## Ineffective Patterns
+    ## Exhausted Directions
+    ## Remaining Opportunities
+
+# 2. RESEARCH
+Update state: phase="research"
+Spawn Researcher agent (sonnet):
+  - Read retro_v{N}.md, architectures/v{N}.md
+  - Web search: optimization techniques, benchmarks
+  - Codebase search: similar patterns, unexplored areas
+  - Write research/research_{N}.md:
+    ## Techniques Found
+    ## Codebase Patterns
+    ## Recommended New Directions
+
+# 3. REDESIGN
+Update state: phase="redesign"
+Spawn Architect agent (opus):
+  - Read retro, research, results.tsv, architectures/v{N}.md
+  - Read program.md → forbidden_zones, immutable_constraints, scope
+  - Decision: architecture change promising?
+    YES → Write architectures/v{N+1}.md
+    NO  → Keep current, update strategy hints only
+  - Report: {redesigned: true/false}
+
+# 4. TRANSITION
+if redesigned:
+    architecture_version += 1, redesign_count += 1
+Reset: plateau.detected=false, consecutive_discards=0
+→ Check termination (3P-E), then re-enter Inner Loop (3P-C)
+```
+
+#### 3P-E: Termination Check
+
+After each outer loop cycle:
+
+- `iteration >= max_iterations` (and max_iterations > 0) → Terminate with reason="budget_exhausted"
+- `best.metric` meets `performance_target` → Terminate with reason="target_reached"
+- Otherwise → Re-enter Inner Loop (3P-C) with new/updated architecture
+
+#### 3P-F: Termination and Summary
+
+Update state: `active=false`, `inner_loop.phase="terminated"`
+
+Display:
+```
+## Autocode PGE Final Summary
+
+- Iterations completed: {N}
+- Architecture versions: v1 → v{final} ({redesign_count} redesigns)
+- Total experiments: {total} ({kept} kept, {discarded} discarded, {crashed} crashed)
+- Baseline: {baseline_value} → Best: {best_value} ({improvement}%)
+- Termination reason: {budget_exhausted|target_reached}
+- Lessons extracted: {lesson_count}
+
+### Architecture Evolution
+| Version | Iterations | Best Metric | Improvement | Key Change |
+|---------|-----------|-------------|-------------|------------|
+| v1      | 1-15      | 132.1       | -9.1%       | (initial)  |
+| v2      | 16-35     | 118.4       | -18.5%      | switched to B-tree index |
+
+### Top Improvements
+1. {description} ({delta}%)
+2. ...
+```
+
+---
+
 ### Step 4: Status (`/autocode status`)
 
 1. If `$RESULTS_FILE` doesn't exist: `No results yet. Run /autocode init then /autocode run.`
 
-2. Read and parse `results.tsv` and `checkpoint.json`.
+2. Read and parse `results.tsv`, `checkpoint.json`, and mode from `program.md`.
 
-3. Display summary:
+3. **If mode=single**, display:
 
 ```
 ## Autocode Status
@@ -478,22 +820,32 @@ If an experiment exceeds the time budget: kill the process, treat as `crash`, re
 **Pivots**: {pivot_count}/{pivot_limit}  |  **Refines**: {refine_count}/{refine_limit}
 **Researchclaw**: {available|unavailable}
 **Lessons learned**: {lesson_count}
-
-### Experiment History
-| # | Iter | Stage | Commit | Metric | Status | Description | Delta |
-|---|------|-------|--------|--------|--------|-------------|-------|
-| 1 | 1 | 12 | a1b2c3d | 145.3 | keep | baseline | -- |
-| 2 | 1 | 12 | b2c3d4e | 132.1 | keep | binary search | -9.1% |
-...
-
-### Kept Changes (cumulative)
-1. replace linear search with binary search (-9.1%)
-2. eliminate redundant copies (-2.4%)
-
-Total improvement: -11.3% from baseline
 ```
 
-4. If experiments are currently running, also show time elapsed and experiments per hour.
+4. **If mode=pge**, read `.omc/state/autocode-pge-state.json` and display:
+
+```
+## Autocode PGE Status
+
+**Branch**: autocode-pge/{date}
+**Mode**: PGE (Plan-Generate-Execute)
+**Phase**: {current phase from state}
+**Architecture**: v{version} ({redesign_count} redesigns)
+**Iteration**: {current} / {max_iterations} (0 = unlimited)
+**Experiments**: {total} total ({kept} kept, {discarded} discarded, {crashed} crashed)
+**Best metric**: {best_value} (baseline: {baseline_value}, improvement: {pct}%)
+**Performance target**: {target or "none"} — {reached or "not yet"}
+**Plateau**: {detected or "not detected"} (consecutive discards: {N})
+**Lessons learned**: {lesson_count}
+
+### Architecture Evolution
+| Version | Iterations | Best Metric | Key Change |
+|---------|-----------|-------------|------------|
+| v1      | 1-15      | 132.1       | (initial)  |
+| v2      | 16-35     | 118.4       | switched to B-tree index |
+```
+
+5. If experiments are currently running, also show time elapsed and experiments per hour.
 
 ---
 
@@ -501,24 +853,77 @@ Total improvement: -11.3% from baseline
 
 1. Verify `$PROGRAM_FILE`, `$RESULTS_FILE`, and `$CHECKPOINT_FILE` exist.
    If not: `No checkpoint found. Run /autocode init then /autocode run first.`
-2. Read checkpoint to restore state: iteration, stage, pivot/refine counts, best metric.
-3. Load lessons from `$LESSONS_DIR`.
-4. Detect the experiment branch and verify it's checked out.
-5. Read execution mode from `$AUTOCODE_DIR/mode.txt` (default: `single` if missing).
+2. Read mode from `program.md`.
+
+**If mode=single:**
+
+3. Read checkpoint to restore state: iteration, stage, pivot/refine counts, best metric.
+4. Load lessons from `$LESSONS_DIR`.
+5. Detect the experiment branch and verify it's checked out.
 6. Display:
    ```
-   Resuming autocode:
+   Resuming autocode (single mode):
    - Branch: autocode/{date}
    - Iteration: {current}/{max_iterations}
    - Stage: {stage_name} ({stage_id})
-   - Current best: {metric_name}: {value}
-   - Pivots: {pivot_count}/{pivot_limit}
-   - Refines: {refine_count}/{refine_limit}
-   - Lessons loaded: {count}
-   - Mode: {single|hybrid}
+   - Current best: {autocode_metric_name}: {value}
    - Resuming pipeline...
    ```
-7. Continue the pipeline loop (3D) from the checkpointed stage and iteration.
+7. Continue the pipeline loop (3A-3M) from the checkpointed stage and iteration.
+
+**If mode=pge:**
+
+3. Read PGE state from `.omc/state/autocode-pge-state.json`.
+4. Load lessons from `$LESSONS_DIR`.
+5. Detect the experiment branch (`autocode-pge/{date}`) and verify it's checked out.
+6. Display:
+   ```
+   Resuming autocode (PGE mode):
+   - Branch: autocode-pge/{date}
+   - Phase: {current phase}
+   - Architecture: v{version}
+   - Iteration: {current}/{max_iterations}
+   - Current best: {autocode_metric_name}: {value}
+   - Redesigns: {redesign_count}
+   - Resuming PGE loop...
+   ```
+7. Continue the PGE loop from the checkpointed phase:
+   - `plan` or `experiment`: re-enter Inner Loop (3P-C)
+   - `retrospect`, `research`, or `redesign`: re-enter Outer Loop (3P-D)
+   - `terminated`: report final summary and exit
+
+---
+
+## File Structure
+
+```
+.autocode/
+├── program.md                    # init output (unified schema)
+├── results.tsv                   # full experiment log (append-only)
+├── mode.txt                      # single | pge
+├── checkpoint.json               # resume state
+├── lessons/
+│   ├── lesson_001.json           # self-learning entries
+│   └── lesson_002.json
+├── logs/                         # experiment stdout/stderr
+├── analysis/                     # hybrid mode analyst reports (single mode)
+├── plans/                        # [PGE] per-iteration experiment plans
+│   ├── plan_001.md
+│   └── plan_002.md
+├── architectures/                # [PGE] versioned architecture documents
+│   ├── v1.md
+│   ├── v2.md
+│   └── v3.md
+├── retrospectives/               # [PGE] architecture retrospectives
+│   ├── retro_v1.md
+│   └── retro_v2.md
+└── research/                     # [PGE] researcher outputs
+    ├── research_001.md
+    └── research_002.md
+
+.omc/state/
+└── autocode-pge-state.json       # [PGE] loop orchestration state
+```
 
 ---
 
@@ -527,39 +932,45 @@ Total improvement: -11.3% from baseline
 | Phase | Tool | Purpose |
 |-------|------|---------|
 | Install | `Bash` | Clone repo, pip install, verify import |
-| Init questions | `AskUserQuestion` | Gather target, metric, guard, constraints |
+| Init questions | `AskUserQuestion` | Brainstorming-pattern HITL interview (one at a time) |
 | Stage selection | `AskUserQuestion` (multiSelect) | Choose pipeline stages |
 | Init confirmation | `AskUserQuestion` | Approve/edit program.md |
-| Mode selection | `AskUserQuestion` | Choose single or hybrid execution mode |
+| Mode selection | `AskUserQuestion` | Choose single or PGE execution mode |
 | Quality gates | `AskUserQuestion` | User approval at gate stages (unless auto-approve) |
-| Code analysis | `Read`, `Grep`, `Glob` | Analyze target files before proposing experiments |
-| Code modification | `Edit` | Modify target files with experimental changes |
-| Running experiments | `Bash` | Execute metric/guard commands (redirect output to logs) |
-| Researchclaw calls | `Bash` | Delegate to researchclaw Python modules when available |
-| Metric extraction | `Bash` | Extract and validate metric from log files |
+| Code analysis | `Read`, `Grep`, `Glob` | Analyze target files |
+| Code modification | `Edit` | Modify target files |
+| Running experiments | `Bash` | Execute metric/guard commands (redirect to logs) |
+| Researchclaw calls | `Bash` | Delegate to researchclaw Python modules |
+| Metric extraction | `Bash` | Extract and validate metric |
 | Results logging | `Edit` or `Bash` | Append to results.tsv |
-| Checkpoint | `Write` | Save checkpoint.json after each stage |
+| Checkpoint | `Write` | Save checkpoint.json / autocode-pge-state.json |
 | Lessons | `Write` | Save lesson JSON files |
-| Periodic analysis | `Agent(subagent_type="data-scientist", run_in_background=true)` | Hybrid mode: analyze trends every 10 experiments |
-| Analysis reading | `Read` | Read analyst output to adjust strategy |
+| Periodic analysis | `Agent(run_in_background=true)` | Hybrid mode: analyze trends (single mode) |
+| **PGE: Planner** | `Agent(model="sonnet")` | Plan next experiment based on architecture |
+| **PGE: Generator** | `Agent(model="sonnet")` | Execute experiment (edit, guard, measure) |
+| **PGE: Evaluator** | `Agent(model="opus")` | Judge results, detect plateau, write retrospective |
+| **PGE: Researcher** | `Agent(model="sonnet")` | Search for new optimization techniques |
+| **PGE: Architect** | `Agent(model="opus")` | Redesign architecture based on research |
+| **PGE: State** | `Write` | Atomic state writes to autocode-pge-state.json |
 
 ## Key Principles
 
-- **Single measurable metric** — the core requirement. No metric = no autocode.
+**Core (both modes):**
+- **Single measurable metric** — no metric = no autocode.
 - **Guard before accept** — tests/lint must pass. Never keep broken code.
 - **Git as checkpoint** — every experiment is a commit. Easy to review, revert, cherry-pick.
-- **Simplicity criterion** — complexity cost must be weighed against improvement magnitude.
-- **Bounded by default** — 10 iterations unless overridden. Prevents runaway loops.
-- **Adaptive strategy** — shift from systematic exploration to focused exploitation based on results.
-- **PIVOT/REFINE/PROCEED** — structured decision logic prevents thrashing. Max 2 pivots, 2 refines.
-- **Quality gates** — automated + human checkpoints at configurable stages.
-- **Self-learning** — extract lessons from failures, load them in future iterations to avoid repeating mistakes.
-- **Graceful degradation** — full pipeline with researchclaw, basic loop without it. Always works.
+- **Simplicity criterion** — complexity cost weighed against improvement magnitude.
+- **Bounded by default** — `max_iterations` is the only hard limit (default 10). Prevents runaway loops.
+- **Self-learning** — extract lessons from failures, load in future iterations.
+- **Graceful degradation** — full pipeline with researchclaw, basic loop without it.
 - **Checkpoint and resume** — never lose progress. Resume from any interruption point.
-- **Hybrid mode** — periodic background analysis improves strategy without blocking the experiment loop.
-- **Stage selection** — user controls which pipeline stages run. Paper writing stages off by default.
-- **Redirect output** — never let experiment output flood the context window. Log to files, extract metrics via grep.
-- **Validate metrics** — always check that extracted metrics are finite numbers before comparing.
 - **program.md is portable** — can be used with any AI agent, not just Claude Code.
-- **results.tsv is the log** — untracked by git, append-only record of all experiments.
 - **.autocode/ is ephemeral** — gitignored, project-local, disposable.
+
+**PGE-specific:**
+- **Architecture evolution** — plateau triggers redesign, not just parameter tweaking.
+- **Stateless agents** — fresh context per spawn prevents pollution across iterations.
+- **File-based communication** — agents communicate via `.autocode/` files, not messages.
+- **Compound plateau detection** — multiple signals prevent false triggers.
+- **Versioned architectures** — every redesign is a new document. Compare, rollback, learn.
+- **Hook persistence** — boulder pattern via `autocode-pge-state.json` ensures loop survives compaction.

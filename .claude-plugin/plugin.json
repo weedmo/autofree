@@ -1,12 +1,12 @@
 {
   "name": "weed-harness",
-  "version": "2.1.1",
+  "version": "2.1.4",
   "description": "Custom skills for Claude Code - productivity workflows",
   "author": {
     "name": "weedmo"
   },
-  "repository": "https://github.com/weedmo/my_harness",
-  "homepage": "https://github.com/weedmo/my_harness",
+  "repository": "https://github.com/weedmo/autofree",
+  "homepage": "https://github.com/weedmo/autofree",
   "license": "MIT",
   "keywords": [
     "skills",
