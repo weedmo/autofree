@@ -43,28 +43,6 @@
     "PreToolUse": [],
     "PostToolUse": [
       {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/hooks/tsg-bash-failure.sh"
-          },
-          {
-            "type": "command",
-            "command": "bash ~/.claude/hooks/merge-conflict-trigger.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/hooks/devlog-hook.sh"
-          }
-        ]
-      },
-      {
         "matcher": "Skill",
         "hooks": [
           {

@@ -72,7 +72,18 @@ You need exactly one input: the **absolute path to the plan file**.
 4. Resolve `$CODEX_HELPER` as shown above.
 5. Announce to the user: `Running 3-pass verification on <path>. Pass 1 (Codex)...`
 
-### Pass 1 — Codex find-and-fix (background, ~30–90s)
+### Pass 1 — Codex find-and-fix (background, ~6–10 min typical)
+
+Measured duration on Codex `gpt-5.5` at `xhigh` reasoning effort (n=1 per bucket, single run each):
+
+| Input plan lines | Measured duration |
+|---:|---|
+| 139  | 6m01s |
+| 409  | 6m00s |
+| 989  | 10m01s |
+| 3158 | 9m01s |
+
+Two observations from the data: (1) there is a **~6-minute floor** — even tiny plans take roughly that long because xhigh reasoning + initial repo inspection have a fixed cost, and (2) duration correlates only weakly with plan size — plan structure and ambiguity matter more than line count. Outliers are possible: a 2000-line plan that triggered a `verifying`-phase stall ran past 13 minutes before being cancelled. **There is no upper bound** — see the polling rule below.
 
 Submit a single Codex task in background mode. The prompt below is the exact contract — copy it verbatim with the path substituted.
 
@@ -124,7 +135,15 @@ PROMPT
 
 Replace `PLAN_PATH` in the heredoc with the real absolute path before piping into Bash. The companion will return a `task-...` job id immediately.
 
-Then poll until completion using `node "$CODEX_HELPER" status <jobId>`. Poll every 10 seconds. If the job has not completed in 5 minutes, abort the loop with a clear error to the user — do not silently hang.
+Then poll until completion using `node "$CODEX_HELPER" status <jobId>`. Poll every 60 seconds — short enough to stay inside the 5-minute prompt-cache TTL, long enough that a typical 6–10 minute pass costs only 6–10 status calls instead of ~36–60 at the old 10s interval. The interval is uniform across plan sizes because the measured data shows duration does not scale linearly with plan size (a 23× size delta produced only a 1.7× duration delta, and the largest plan was *faster* than the next-largest). **Do NOT impose a time-based timeout.** Codex on a large plan legitimately runs for many minutes — aborting on a timer wastes the in-flight review and forces a restart. Keep polling until the job's `status` field becomes terminal (`completed`, `failed`, or `cancelled`):
+
+- `completed` → proceed to result retrieval below.
+- `failed` or `cancelled` → abort the loop, surface stderr/output verbatim, do not improvise. See "Failure handling".
+- `queued` or `running` → keep waiting, no matter how long it has taken.
+
+For user visibility during long waits, print a one-line progress note at elapsed = 5min, 15min, 30min, then every 30min thereafter. Format: `Pass 1 still running — <elapsed>m elapsed, status=<status>, phase=<phase>`. This is informational only; it does not abort.
+
+If the user wants to stop a runaway pass, they can run `node "$CODEX_HELPER" cancel <jobId>` themselves; the polling loop will then observe `cancelled` on the next tick and abort cleanly. Do not preemptively cancel on the user's behalf.
 
 When the job is `completed`, retrieve the rendered output with `node "$CODEX_HELPER" result <jobId>`. Capture both:
 - The "## Fixed" list (for the final summary).
@@ -205,7 +224,7 @@ PROMPT
 
 `CLAUDE_DISSENT_BULLETS` is the bulleted list you wrote in Pass 2. If your list was empty, write `- (none — Claude review found nothing to escalate)`.
 
-Poll the same way as Pass 1 (10s interval, 5min cap). Capture the "## Final fixes" and "## Verdict" sections.
+Poll the same way as Pass 1 (60s interval, status-based — wait until `completed`/`failed`/`cancelled`, no time-based cap, milestone progress notes at 5/15/30+ minutes). Capture the "## Final fixes" and "## Verdict" sections.
 
 ### Pass 4 — Stamp and report (Claude, ~10s)
 
@@ -238,13 +257,13 @@ Poll the same way as Pass 1 (10s interval, 5min cap). Capture the "## Final fixe
 
 ## Failure handling
 
-- **Codex job times out (>5 min)**: abort, tell the user which pass timed out, leave the plan in whatever state Codex left it. Do not retry automatically.
-- **Codex job fails (non-zero exit)**: abort, surface the helper's stderr to the user verbatim, do not improvise a Claude-only verification.
+- **Codex job duration is long**: this is NOT a failure. Long elapsed time alone never aborts the loop. The skill polls `node "$CODEX_HELPER" status <jobId>` indefinitely and only acts on the reported `status` field. While the job is `queued` or `running`, keep waiting. Surface progress notes at 5/15/30+ minute milestones for user visibility, but do not cancel. The user can manually run `node "$CODEX_HELPER" cancel <jobId>` if they decide to stop the run; the next poll tick will then observe `cancelled` and exit cleanly.
+- **Codex job reports `failed` or `cancelled` status, or the helper exits non-zero**: abort the loop, tell the user which pass terminated and why, surface the helper's stderr / rendered output verbatim, leave the plan in whatever state Codex left it. Do not retry automatically. Do not improvise a Claude-only verification.
 - **Codex completed but applied zero edits AND its rendered output mentions a sandbox / permission / writable-root / `bwrap` / `apply_patch` error**: this is a silent failure, not a real "nothing to fix". Treat it identically to a non-zero exit — abort the loop, surface the codex error verbatim, and do NOT promote Pass 2 (Claude) into find-and-fix to compensate. Pass 2 is a *dissent* pass; it must not run as a primary editor when Pass 1 never actually inspected the file. The risk this rule prevents: a user thinks they got a 3-pass verification when they actually got a single Claude pass, and the verdict line on the plan implies stronger validation than was performed.
 - **Codex completed with zero edits AND its output gives a substantive "nothing to fix" rationale (no sandbox error)**: that is a legitimate clean Pass 1. Continue to Pass 2 normally; Pass 2 may still find dissent items.
 - **Plan file is not a plan**: exit early with a one-line note and do nothing else.
 - **`codex-companion.mjs` not found**: tell the user to run `/codex:setup` and `bash <skill>/setup.sh`. Do not try to call the codex CLI directly as a fallback.
-- **Plan file is outside the codex CLI's writable roots** (typically the current working directory tree): codex will silently fail to edit. Detect this preemptively in Pass 0 — if the plan path is not under `pwd`, tell the user to move the plan into the project tree (or run the skill from a directory whose tree contains the plan) and abort before submitting any codex job. Do not "try and see" — the failure mode is a wasted 30–90s background job and a misleading verdict.
+- **Plan file is outside the codex CLI's writable roots** (typically the current working directory tree): codex will silently fail to edit. Detect this preemptively in Pass 0 — if the plan path is not under `pwd`, tell the user to move the plan into the project tree (or run the skill from a directory whose tree contains the plan) and abort before submitting any codex job. Do not "try and see" — the failure mode is a wasted background job and a misleading verdict.
 
 ## What this skill does NOT do
 
