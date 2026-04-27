@@ -135,11 +135,15 @@ PROMPT
 
 Replace `PLAN_PATH` in the heredoc with the real absolute path before piping into Bash. The companion will return a `task-...` job id immediately.
 
-Then poll until completion using `node "$CODEX_HELPER" status <jobId>`. Poll every 60 seconds — short enough to stay inside the 5-minute prompt-cache TTL, long enough that a typical 6–10 minute pass costs only 6–10 status calls instead of ~36–60 at the old 10s interval. The interval is uniform across plan sizes because the measured data shows duration does not scale linearly with plan size (a 23× size delta produced only a 1.7× duration delta, and the largest plan was *faster* than the next-largest). **Do NOT impose a time-based timeout.** Codex on a large plan legitimately runs for many minutes — aborting on a timer wastes the in-flight review and forces a restart. Keep polling until the job's `status` field becomes terminal (`completed`, `failed`, or `cancelled`):
+Then poll until completion using **exactly** `node "$CODEX_HELPER" status <jobId> --json`. Poll every 60 seconds — short enough to stay inside the 5-minute prompt-cache TTL, long enough that a typical 6–10 minute pass costs only 6–10 status calls instead of ~36–60 at the old 10s interval. The interval is uniform across plan sizes because the measured data shows duration does not scale linearly with plan size (a 23× size delta produced only a 1.7× duration delta, and the largest plan was *faster* than the next-largest). **Do NOT impose a time-based timeout.** Codex on a large plan legitimately runs for many minutes — aborting on a timer wastes the in-flight review and forces a restart. Keep polling until the job's `status` field becomes terminal (`completed`, `failed`, or `cancelled`):
 
 - `completed` → proceed to result retrieval below.
 - `failed` or `cancelled` → abort the loop, surface stderr/output verbatim, do not improvise. See "Failure handling".
 - `queued` or `running` → keep waiting, no matter how long it has taken.
+
+**CRITICAL — never use `status` without a jobId, and never use `status --all`.** Each `node codex-companion.mjs ...` invocation spins up a fresh broker instance; bare `status` / `status --all` only sees jobs that *this* invocation's broker observed (typically zero, since the submitting invocation already exited). It will report `No jobs recorded yet.` even when the job has long since completed, sending the polling loop into an infinite wait on an already-done job. **Always pass the explicit `<jobId>` you captured at submission**; that path is file-backed and reads correct cross-invocation state. If you ever see `No jobs recorded yet.` while polling, treat it as evidence you used the wrong command, not as evidence the job is stuck.
+
+Parse the result as JSON and extract `.job.status`. If parsing fails, or the field is missing/empty, retry the same `status <jobId> --json` command once after a short pause; if it still fails, abort the loop and surface the raw output to the user — do NOT silently treat it as "still running".
 
 For user visibility during long waits, print a one-line progress note at elapsed = 5min, 15min, 30min, then every 30min thereafter. Format: `Pass 1 still running — <elapsed>m elapsed, status=<status>, phase=<phase>`. This is informational only; it does not abort.
 
