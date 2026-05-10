@@ -41,7 +41,6 @@ plans/
 /plugins/*
 !/plugins/weed-harness/
 !/plugins/weed-harness/**
-scripts/
 
 # Runtime & OMC state
 .omc/

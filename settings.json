@@ -68,8 +68,8 @@
           {
             "type": "command",
             "command": "bash ~/.claude/hooks/codex-task-review.sh",
-            "asyncRewake": true,
             "timeout": 600,
+            "asyncRewake": true,
             "rewakeMessage": "Codex review of recent subagent changes:",
             "rewakeSummary": "Codex task review"
           }
@@ -96,7 +96,9 @@
     "weed-cowork@weed-cowork": true,
     "superpowers@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true,
-    "codex@openai-codex": true
+    "codex@openai-codex": true,
+    "playwright@claude-plugins-official": true,
+    "ouroboros@ouroboros": true
   },
   "extraKnownMarketplaces": {
     "weed-plugins": {
@@ -116,10 +118,18 @@
         "source": "github",
         "repo": "openai/codex-plugin-cc"
       }
+    },
+    "ouroboros": {
+      "source": {
+        "source": "github",
+        "repo": "Q00/ouroboros"
+      }
     }
   },
   "alwaysThinkingEnabled": true,
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
-  "teammateMode": "in-process"
+  "teammateMode": "in-process",
+  "skipAutoPermissionPrompt": true,
+  "agentPushNotifEnabled": true
 }
