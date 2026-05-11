@@ -64,6 +64,27 @@ function parseTranscript(path) {
   return out;
 }
 
+function getGitInfo(cwd) {
+  if (!cwd) return null;
+  const opts = { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 200 };
+  const tryRun = (cmd) => {
+    try {
+      return execSync(cmd, opts).trim();
+    } catch {
+      return "";
+    }
+  };
+  const branch = tryRun("git --no-optional-locks rev-parse --abbrev-ref HEAD");
+  if (!branch) return null;
+  const displayBranch =
+    branch === "HEAD"
+      ? tryRun("git --no-optional-locks rev-parse --short HEAD") || "DETACHED"
+      : branch;
+  const gitDir = tryRun("git --no-optional-locks rev-parse --git-dir");
+  const isWorktree = gitDir.includes("/worktrees/");
+  return { branch: displayBranch, isWorktree };
+}
+
 function shortModel(data) {
   const id = data.model?.id || "";
   const display = data.model?.display_name || "";
@@ -134,6 +155,7 @@ async function main() {
   const model = shortModel(data);
   const effort = data.effort?.level || "";
   const cwd = data.cwd ? basename(data.cwd) : "";
+  const gitInfo = getGitInfo(data.cwd);
   const version = findLatestPluginVersion("weed-harness") || "?";
   const { tools, sessionMin } = parseTranscript(data.transcript_path);
   const ctxPct = Math.round(data.context_window?.used_percentage ?? 0);
@@ -168,7 +190,17 @@ async function main() {
     `5h:${fiveHourColor}${fiveHourPct}%${C.reset}${fiveHourLeft ? `${C.dim}(${fiveHourLeft})${C.reset}` : ""}`,
     `${C.dim}|${C.reset}`,
     `wk:${weekColor}${weekPct}%${C.reset}${weekLeft ? `${C.dim}(${weekLeft})${C.reset}` : ""}`,
-    cwd ? `${C.dim}@${C.reset}${cwd}` : "",
+    cwd
+      ? (() => {
+          let s = `${C.dim}@${C.reset}${cwd}`;
+          if (gitInfo) {
+            const branchColor = gitInfo.isWorktree ? C.magenta : C.cyan;
+            const wtMarker = gitInfo.isWorktree ? "⎇" : "";
+            s += `${C.dim}:${C.reset}${branchColor}${gitInfo.branch}${wtMarker}${C.reset}`;
+          }
+          return s;
+        })()
+      : "",
   ]
     .filter(Boolean)
     .join(" ");
