@@ -41,17 +41,7 @@
   },
   "hooks": {
     "PreToolUse": [],
-    "PostToolUse": [
-      {
-        "matcher": "Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/hooks/gstack-skill-filter.sh"
-          }
-        ]
-      }
-    ],
+    "PostToolUse": [],
     "SubagentStop": [
       {
         "hooks": [
