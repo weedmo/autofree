@@ -1,6 +1,6 @@
 ---
 name: setup
-description: "weed-harness 사용자 환경 셋업 — statusLine HUD 설치, OpenAI Codex 플러그인 연결, custom SubagentStop hook (rewakeMessage), 추가 hooks (devlog, language-rule, gstack-skill-filter 등) 등록. 멱등(idempotent)이라 여러 번 실행해도 안전. 트리거: '/setup', 'setup hud', 'plugin 설치 후 설정', 'codex 연결', 'statusLine 등록'."
+description: "weed-harness 사용자 환경 셋업 — statusLine HUD 설치, OpenAI Codex 플러그인 연결, understand-anything 플러그인 설치, custom SubagentStop hook (rewakeMessage), 추가 hooks (devlog, language-rule, gstack-skill-filter 등) 등록. 멱등(idempotent)이라 여러 번 실행해도 안전. 트리거: '/setup', 'setup hud', 'plugin 설치 후 설정', 'codex 연결', 'statusLine 등록'."
 ---
 
 # weed-harness setup
@@ -19,11 +19,12 @@ Claude Code 플러그인은 `skills/`, `agents/`, `hooks/hooks.json`, MCP 서버
 ## 사용법
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh"          # 전체 셋업
-bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" hud      # HUD만
-bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" codex    # Codex 플러그인 + hook
-bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" hooks    # 추가 hook 등록
-bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" status   # 현재 상태만 보기 (변경 없음)
+bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh"            # 전체 셋업
+bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" hud        # HUD만
+bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" codex      # Codex 플러그인 + hook
+bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" understand # understand-anything 플러그인
+bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" hooks      # 추가 hook 등록
+bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" status     # 현재 상태만 보기 (변경 없음)
 ```
 
 ## skill이 호출되었을 때 Claude의 행동
@@ -32,6 +33,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" status   # 현재 상태만
    - "/setup", "setup all", "전부 설정해줘" → `install.sh all`
    - "setup hud", "statusLine 등록해줘" → `install.sh hud`
    - "setup codex", "codex 연결" → `install.sh codex`
+   - "setup understand", "understand-anything 설치" → `install.sh understand`
    - "setup hooks", "hook 등록" → `install.sh hooks`
    - "setup status", "뭐 설치되어 있어?" → `install.sh status`
 
@@ -60,6 +62,13 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/setup/install.sh" status   # 현재 상태만
   - `rewakeMessage: "Codex review of recent subagent changes:"`
   - `rewakeSummary: "Codex task review"`
 - 동일한 script_path 가 이미 등록되어 있으면 옵션만 갱신
+
+### `understand`
+
+- `claude plugin marketplace add Lum1104/Understand-Anything` (이미 있으면 skip)
+- `claude plugin install understand-anything` (이미 있으면 skip)
+- codebase 이해/분석용 third-party 플러그인 (`/understand`, `/understand-explain`, `/understand-chat` 등 제공)
+- 자동 트리거되지 않음 — 사용자가 명시적으로 해당 slash command를 호출해야 함
 
 ### `hooks`
 

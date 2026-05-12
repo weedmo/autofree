@@ -6,6 +6,7 @@
 #   install.sh             # install all components
 #   install.sh hud         # install HUD (statusLine + hud/ copy)
 #   install.sh codex       # install codex plugin + custom SubagentStop hook
+#   install.sh understand  # install understand-anything plugin (codebase comprehension)
 #   install.sh hooks       # register weed-harness extra hooks in settings.json
 #   install.sh scripts     # copy team.sh + pipeline.sh to ~/.claude/scripts/
 #   install.sh status      # report what is/isn't installed (no writes)
@@ -170,6 +171,28 @@ if not found:
   fi
 }
 
+# ---------- step: understand-anything ----------
+
+setup_understand() {
+  printf '\n[understand] understand-anything plugin (codebase comprehension)\n'
+  if ! command -v claude >/dev/null 2>&1; then
+    warn "claude CLI not found — skipping understand-anything install (install manually later)"
+    return 0
+  fi
+  if claude plugin marketplace list 2>/dev/null | grep -q "understand-anything"; then
+    skip "marketplace understand-anything already added"
+  else
+    log "adding marketplace Lum1104/Understand-Anything..."
+    claude plugin marketplace add Lum1104/Understand-Anything 2>&1 | sed 's/^/    /' || warn "marketplace add failed (may already exist)"
+  fi
+  if claude plugin list 2>/dev/null | grep -q "understand-anything@understand-anything"; then
+    skip "understand-anything@understand-anything already installed"
+  else
+    log "installing understand-anything..."
+    claude plugin install understand-anything 2>&1 | sed 's/^/    /' || warn "install failed"
+  fi
+}
+
 # ---------- step: extra hooks ----------
 
 setup_hooks() {
@@ -303,6 +326,12 @@ for g in d.get('hooks',{}).get('SubagentStop',[]):
 if not found:
     print('  ! codex SubagentStop hook NOT configured')
 "
+  printf '\n[understand]\n'
+  if command -v claude >/dev/null 2>&1; then
+    if claude plugin list 2>/dev/null | grep -q understand-anything@understand-anything; then ok "understand-anything plugin installed"; else warn "understand-anything plugin NOT installed"; fi
+  else
+    warn "claude CLI not available — cannot check"
+  fi
   printf '\n[hooks]\n'
   for s in tsg-bash-failure.sh merge-conflict-trigger.sh devlog-hook.sh gstack-skill-filter.sh language-rule.sh; do
     if grep -q "$s" "$SETTINGS" 2>/dev/null; then ok "$s registered"; else warn "$s NOT registered"; fi
@@ -322,18 +351,20 @@ case "$cmd" in
   all)
     setup_hud
     setup_codex
+    setup_understand
     setup_hooks
     setup_scripts
     printf '\nDone. Restart Claude Code to apply hooks/statusLine changes.\n'
     ;;
-  hud)     setup_hud ;;
-  codex)   setup_codex ;;
-  hooks)   setup_hooks ;;
-  scripts) setup_scripts ;;
-  status)  status ;;
+  hud)        setup_hud ;;
+  codex)      setup_codex ;;
+  understand) setup_understand ;;
+  hooks)      setup_hooks ;;
+  scripts)    setup_scripts ;;
+  status)     status ;;
   *)
     err "Unknown command: $cmd"
-    printf 'Usage: %s [all|hud|codex|hooks|scripts|status]\n' "$(basename "$0")"
+    printf 'Usage: %s [all|hud|codex|understand|hooks|scripts|status]\n' "$(basename "$0")"
     exit 1
     ;;
 esac

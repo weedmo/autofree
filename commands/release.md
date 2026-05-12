@@ -1,10 +1,6 @@
 ---
-name: release
 description: "Automated release workflow: version bump, commit, tag, push, GitHub Release, marketplace sync, and cache update"
-arguments:
-  - name: version
-    description: "Version to release (e.g., 1.0.0, patch, minor, major)"
-    required: true
+argument-hint: "<X.Y.Z | patch | minor | major>"
 ---
 
 # Release Workflow

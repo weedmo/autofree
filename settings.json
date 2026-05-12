@@ -52,16 +52,6 @@
         ]
       }
     ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/hooks/verify-plan-trigger.sh"
-          }
-        ]
-      }
-    ],
     "SubagentStop": [
       {
         "hooks": [
@@ -98,7 +88,8 @@
     "skill-creator@claude-plugins-official": true,
     "codex@openai-codex": true,
     "playwright@claude-plugins-official": true,
-    "ouroboros@ouroboros": true
+    "ouroboros@ouroboros": true,
+    "understand-anything@understand-anything": true
   },
   "extraKnownMarketplaces": {
     "weed-plugins": {
@@ -124,12 +115,18 @@
         "source": "github",
         "repo": "Q00/ouroboros"
       }
+    },
+    "understand-anything": {
+      "source": {
+        "source": "github",
+        "repo": "Lum1104/Understand-Anything"
+      }
     }
   },
   "alwaysThinkingEnabled": true,
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
   "teammateMode": "in-process",
-  "skipAutoPermissionPrompt": true,
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true
 }

@@ -18,10 +18,14 @@ CWD="$(pwd)"
 
 # Find recently-modified plan files (under any /plans?/ directory, .md, mtime <5min).
 # Limit scope to the current working tree to avoid scanning the whole disk.
+# Exclude .claude/plugins/{marketplaces,cache}/** — those are third-party plugin
+# clones, not user-authored plans. Marketplace adds/updates touch many plan-
+# shaped files at once and would otherwise trigger verify-plan storms.
 MATCHES="$(find "${CWD}" \
   -type d \( -name node_modules -o -name .git -o -name .venv -o -name dist -o -name build \) -prune -o \
   -type f -name '*.md' -mmin -5 -print 2>/dev/null \
-  | grep -iE '/plans?/[^/]+\.md$' || true)"
+  | grep -iE '/plans?/[^/]+\.md$' \
+  | grep -vE '/\.claude/plugins/(marketplaces|cache)/' || true)"
 
 [[ -z "${MATCHES}" ]] && exit 0
 
