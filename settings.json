@@ -87,8 +87,8 @@
     "superpowers@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true,
     "codex@openai-codex": true,
-    "playwright@claude-plugins-official": true,
-    "ouroboros@ouroboros": true,
+    "playwright@claude-plugins-official": false,
+    "ouroboros@ouroboros": false,
     "understand-anything@understand-anything": true
   },
   "extraKnownMarketplaces": {
