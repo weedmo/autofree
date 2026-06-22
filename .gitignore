@@ -71,3 +71,6 @@ sessions/
 research/
 skills/learned/
 skills/skill-stocktake/
+
+# eval scratch (skill-creator workspaces)
+skills/workflow-plan-workspace/
