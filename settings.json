@@ -65,6 +65,17 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/skills/skill-subscribe/scripts/check.py --hook",
+            "timeout": 30
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
