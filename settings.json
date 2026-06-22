@@ -75,6 +75,15 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/graphify-upgrade-check.sh",
+            "timeout": 20
+          }
+        ]
       }
     ]
   },
@@ -89,8 +98,7 @@
     "skill-creator@claude-plugins-official": true,
     "codex@openai-codex": true,
     "playwright@claude-plugins-official": false,
-    "ouroboros@ouroboros": false,
-    "understand-anything@understand-anything": true
+    "ouroboros@ouroboros": false
   },
   "extraKnownMarketplaces": {
     "weed-plugins": {
@@ -115,12 +123,6 @@
       "source": {
         "source": "github",
         "repo": "Q00/ouroboros"
-      }
-    },
-    "understand-anything": {
-      "source": {
-        "source": "github",
-        "repo": "Lum1104/Understand-Anything"
       }
     }
   },

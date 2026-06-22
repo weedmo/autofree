@@ -184,3 +184,31 @@ When the user says **"sync"**, invoke the `/harness-sync` skill.
 # graphify
 - **graphify** (`~/.claude/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
 When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` before doing anything else.
+
+## graphify operating policy (codebase knowledge graph)
+
+graphify is the standard knowledge-graph backbone for codebases here. The goal is
+two-fold and matters more as a project grows: **token savings** for agent retrieval
+and **fast human comprehension**. Apply this policy.
+
+- **Distribution**: graphify is the pip package `graphifyy` (installed via pipx),
+  and `graphify install --platform claude` generates the local skill. The package
+  version IS the skill version. A SessionStart hook
+  (`~/.claude/hooks/graphify-upgrade-check.sh`) checks PyPI and notifies on a newer
+  version; it does NOT auto-apply. Apply on approval with:
+  `pipx upgrade graphifyy && graphify install --platform claude`.
+- **Build for both audiences**: `graphify <repo> --directed --wiki`. `--directed`
+  preserves call direction (matters for code); `--wiki` emits an agent-crawlable
+  wiki that humans also read. Outputs land in `graphify-out/` (+ HTML / Obsidian
+  vault for human browsing).
+- **Keep it fresh (critical long-term)**: a stale graph lies. Run `--update`
+  (incremental, changed files only) in CI / on commit, and `--watch` locally.
+  Never rely on a one-time build for an evolving codebase.
+- **Agent retrieval = token savings**: when `graphify-out/graph.json` exists, treat
+  natural-language questions about the codebase as graphify queries
+  (`graphify query "..." --budget N`, `--dfs` to trace a path) instead of reading
+  whole files. Optionally expose query/path/explain to agents via `graphify --mcp`.
+- **Honest limits**: the graph is for orientation (where is X, how is it connected).
+  Precise references ("all callers of f") are better from LSP/Sourcegraph, and
+  actual edits / deep logic verification still require Claude Code reading the real
+  source — the graph narrows that reading to save tokens, it does not replace it.
