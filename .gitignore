@@ -74,3 +74,5 @@ skills/skill-stocktake/
 
 # eval scratch (skill-creator workspaces)
 skills/workflow-plan-workspace/
+# vendored gstack browse: exclude heavy test fixtures (28M) from harness release
+skills/browse/test/
